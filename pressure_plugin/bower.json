@@ -1,0 +1,11 @@
+{
+  "name": "openrov-plugin-pressure-display-plugin",
+  "description": "Displays incoming depth data for ROV",
+  "version": "0.0.0",
+  "homepage": "",
+  "main": "lib/pressure-display-plugin",
+  "keywords": [
+    "openrov",
+    "plugin"
+  ]
+}
