@@ -1,0 +1,11 @@
+{
+  "name": "openrov-plugin-pressure-display",
+  "description": "Display for pressure chamber cycling",
+  "version": "0.0.0",
+  "homepage": "",
+  "main": "lib/pressure-display",
+  "keywords": [
+    "openrov",
+    "plugin"
+  ]
+}
