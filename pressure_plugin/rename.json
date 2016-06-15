@@ -1,3 +1,0 @@
-{
-  "public/js/client.js": "public/js/{%= name %}.js"
-}
