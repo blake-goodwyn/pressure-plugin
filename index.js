@@ -1,5 +1,5 @@
-function pressureDisplay(name, deps) {
-	console.log('This is where the pressure display plugin code would execute in the node process.');
+function engineeringPanel(name, deps) {
+	console.log('This is where the engineering panel plugin code would execute in the node process.');
 
 	//instance variables
 	this.deps = deps; //hold a reference to the plugin dependencies if you are going to use them
@@ -9,7 +9,7 @@ function pressureDisplay(name, deps) {
 }
 
 // Start is executed after all plugins have loaded. Activate listeners here.
-pressureDisplay.prototype.start = function start(){
+engineeringPanel.prototype.start = function start(){
   var self = this; 
 
 	self.deps.globalEventLoop.on( 'physicalInterface.status', function(data){
@@ -23,10 +23,10 @@ pressureDisplay.prototype.start = function start(){
 	});
 
 	setInterval(function () {
-		self.deps.cockpit.emit('plugin.pressureDisplay.data', self.statusdata);
+		self.deps.cockpit.emit('plugin.engineering.data', self.statusdata);
 	}, 1000);
 }
 
 module.exports = function (name, deps) {
-  return new pressureDisplay(name,deps);
+  return new engineeringPanel(name,deps);
 };
