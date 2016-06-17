@@ -64,7 +64,7 @@
 			<span class="value" align="right"> Current Depth: {{value}} m</span>
 			<span class="pressure" align="right">Pressure: {{pressure}} psi</span>
 			<span class="time prefix" align="right">Time Elapsed:</span>
-			<span class="time" align="right">{{curTime}}</span>
+			<span class="time" align="right">{{dispTime}}</span>
 				<div id="chart">
 				</div>
 			</content>
@@ -83,7 +83,7 @@
 				startTime : {
 					Type: Number
 				},
-				curTime : {
+				dispTime : {
 					Type: Number
 				},
 				type: {
@@ -147,19 +147,25 @@
 				}
 
 				//obtain current data
-				self.curData = self.data.slice(self.startIdx, self.data.length);
-				self.tmpLength = self.curData.length - 1
+				self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
+
 				self.padding = 0.1;
 
 				//structure current time output
-				self.curTime = parseFloat(Math.floor((Date.now() - self.startTime)/1000)).toFixed(0); //time adjustment due to status intervals
+				self.curTime = parseFloat(Math.floor((Date.now() - self.startTime)/1000)).toFixed(0);
+				self.dispTime;
 				if (self.curTime < 60){
-					self.curTime = "0:" + ((self.curTime % 60 < 10) ? ("0" + (self.curTime % 60)) : (self.curTime % 60));
+					self.dispTime = "0:" + ((self.curTime % 60 < 10) ? ("0" + (self.curTime % 60)) : (self.curTime % 60));
 				}else if (self.curTime < 3600){
-					self.curTime = Math.floor(self.curTime/60) + ":" + ((self.curTime % 60 < 10) ? "0" + (self.curTime % 60) : (self.curTime % 60));
-				}
+					self.dispTime = Math.floor(self.curTime/60) + ":" + ((self.curTime % 60 < 10) ? "0" + (self.curTime % 60) : (self.curTime % 60));
+				};
 
-				self.output.push({"time":self.curTime,"value":self.curData[self.curData.length-1]});
+				if(!self.prevTime){self.prevTime = self.curTime;}; //datastream threshold (.toFixed(0) ==> 1Hz)
+
+				if((self.prevTime != self.curTime) || (self.output.length == 0)){
+					self.output.push({"time":self.curTime,"value":self.curData[self.curData.length-1]});
+					self.prevTime = self.curTime;
+				};
 
 				//obtain current widget dimensions
 				self.width = self.elem.offsetWidth;
@@ -168,12 +174,12 @@
 				//update axes and path
 				self.x.range([self.padding*self.width, (1-4*self.padding)*self.width]);
 				self.y.range([(1-self.padding)*self.height, 2*self.padding*self.height]);
-				self.x.domain([0, self.tmpLength]);
+				self.x.domain([0, self.curTime]);
 				self.y.domain([0.1, 1.25*d3.max(self.curData)]);
-				self.path.datum(self.curData).attr("d", self.line);
+				self.path.datum(self.output).attr("d", self.line);
 
 				//translate and transition
-				if (self.curTime < 2 || (!self.yChart) || (!self.xChart)) {
+				if ((!self.yChart) || (!self.xChart)) {
 					
 					self.svg.selectAll(".axis").remove();
 
@@ -222,8 +228,8 @@
 				self.y = d3.scale.linear();
 
 				self.line = d3.svg.line()
-					.x(function(d, i) { return self.x(i); })
-					.y(function(d) { return self.y(d); })
+					.x(function(d) { return self.x(d["time"]); })
+					.y(function(d) { return self.y(d["value"]); })
 					.interpolate("basis");
 
 				self.svg = d3.select(self.$.chart).append("svg")
