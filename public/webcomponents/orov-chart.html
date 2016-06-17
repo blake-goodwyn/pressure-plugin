@@ -11,8 +11,8 @@
 	}
 	.line {
 	    fill: none;
-	    stroke-width: 3;
-		stroke: #3071AF;
+	    stroke-width: 0.25vh;
+		stroke: #30609B;
 	}
 	.value{
       position: absolute;
@@ -45,17 +45,17 @@
       position: absolute;
       top: 32.5%;
       transform: translateY(-50%) translateX(-50%);
-      left: 83%;
+      left: 82%;
       font-size: 2vw;
       font-weight: 300;
 	  text-anchor: start;
     }
 	.tick text{
 		font-size: 1vw;
-		fill: #4E4E4E;
+		fill:#2d2d2a;
 	}
 	.domain {
-		fill:#4E4E4E;
+		fill: #C0C0C0;
 	}
 	</style>
 	<template>
@@ -107,9 +107,6 @@
 					value: false
 				},
 				data: Array,
-				curData: Array,
-				drawFlag: Boolean,
-				startIdx: Number,
 				output: Object,
 			},
 			behaviors: [namespace('behaviors').oROVStandard],
@@ -129,9 +126,10 @@
 					this.value = val;
 				} else {
 					this.value = parseFloat(val).toFixed(2);
-				}
+				};
 
-				this.pressure = parseFloat((val*1027*9.8*1.45e-4) + 14.6).toFixed(2) ; //pressure conversion
+				this.pressure = parseFloat((val*1027*9.8*1.45e-4) + 14.6).toFixed(2) ; 
+				//pressure conversion (Depth*Density*Gravity*Conversion Factor (Pa => psi) + Atmospheric Pressure)
 
 				this.data.push(val);
 				
@@ -149,27 +147,21 @@
 				//obtain current data
 				self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
 
-				self.padding = 0.1;
-
 				//structure current time output
 				self.curTime = parseFloat(Math.floor((Date.now() - self.startTime)/1000)).toFixed(0);
-				self.dispTime;
-				if (self.curTime < 60){
-					self.dispTime = "0:" + ((self.curTime % 60 < 10) ? ("0" + (self.curTime % 60)) : (self.curTime % 60));
-				}else if (self.curTime < 3600){
-					self.dispTime = Math.floor(self.curTime/60) + ":" + ((self.curTime % 60 < 10) ? "0" + (self.curTime % 60) : (self.curTime % 60));
-				};
-
+				self.dispTime = self.timeFormat(self.curTime);
+		
 				if(!self.prevTime){self.prevTime = self.curTime;}; //datastream threshold (.toFixed(0) ==> 1Hz)
 
 				if((self.prevTime != self.curTime) || (self.output.length == 0)){
-					self.output.push({"time":self.curTime,"value":self.curData[self.curData.length-1]});
+					self.output.push({"time":self.curTime,"depth":(self.curData[self.curData.length-1]).toFixed(2),"pressure":self.pressure});
 					self.prevTime = self.curTime;
 				};
 
 				//obtain current widget dimensions
 				self.width = self.elem.offsetWidth;
 				self.height = self.elem.offsetHeight;
+				self.padding = 0.1;
 
 				//update axes and path
 				self.x.range([self.padding*self.width, (1-4*self.padding)*self.width]);
@@ -179,9 +171,7 @@
 				self.path.datum(self.output).attr("d", self.line);
 
 				//translate and transition
-				if ((!self.yChart) || (!self.xChart)) {
-					
-					self.svg.selectAll(".axis").remove();
+				if ((!self.yChart) || (!self.xChart)) { //no defined axes
 
 					self.yChart = self.svg.append("g")
 						.attr("class","y axis")
@@ -192,9 +182,18 @@
 						.attr("class","x axis")
 						.attr("transform","translate(0," + (1-self.padding)*self.height + ")")
 						.call(self.xAxis);
+
+					self.yLabel = self.svg.append("text")
+						.attr("x","5%")
+						.attr("y","18.5%")
+						.text("Depth (m)")
+						.style("font-size", "1vw")
+						.style("font-weight", "bold");
+
+					if(!!self.yLabel){console.log(test)};
 					
-				}else{
-					self.svg.select(".x.axis") //scale transitions
+				}else{ //scale transitions
+					self.svg.select(".x.axis")
 					.attr("transform","translate(0," + (1-self.padding)*self.height + ")")
 					.transition()
 					.duration(1000)
@@ -217,7 +216,6 @@
 
 				this.elem = this.$.chart;
 				var self = this;
-				self.tmpLength = 0;
 				self.width = self.$.chart.clientWidth;
 				self.height = self.$.chart.clientHeight;
 				self.drawFlag = false;
@@ -229,8 +227,16 @@
 
 				self.line = d3.svg.line()
 					.x(function(d) { return self.x(d["time"]); })
-					.y(function(d) { return self.y(d["value"]); })
+					.y(function(d) { return self.y(d["depth"]); })
 					.interpolate("basis");
+
+				self.timeFormat = function (time){ //curTime => dispTime
+					if (time < 60){
+						return "0:" + ((time % 60 < 10) ? ("0" + (time % 60)) : (time % 60));
+					}else if (self.curTime < 3600){
+						return Math.floor(time/60) + ":" + ((time % 60 < 10) ? "0" + (time % 60) : (time % 60));
+					};
+				};
 
 				self.svg = d3.select(self.$.chart).append("svg")
 					.attr("width", '100%')
@@ -238,7 +244,7 @@
 
 				self.imgs = self.svg.selectAll("img").data([0]);
 						
-				self.imgs.enter()
+				self.imgs.enter() //logo
 					.append("svg:image")
 					.attr("xlink:href", "/components/pressure-plugin/logo.png")
 					.attr("x", "5%")
@@ -250,19 +256,7 @@
 				self.yAxis = d3.svg.axis().orient("left").scale(self.y);
 
 				//x-axis
-				self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(function(d) {
-					var seconds = d;
-					var minutes = Math.floor(seconds / 60);
-
-					if (seconds % 1 != 0) {
-						return minutes + ":0" + d3.format(".1f")(seconds - minutes * 60);
-					} else if ((seconds % 60) < 10) {
-						return minutes + ":0" + d3.format(".0f")(seconds - minutes * 60);
-					} else {
-						return minutes + ":" + d3.format(".0f")(seconds - minutes * 60);
-					}
-
-				});
+				self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(self.timeFormat);
 
 				self.path = self.svg.append("g")
 					.attr("clip-path", "url(#clip)")
@@ -282,7 +276,7 @@
 						.attr("width", "25%")
 						.attr("id", "start-rect")
 						.style("fill", "#EFF8FB")
-						.style("stroke", "black")
+						.style("stroke", "#2d2d2a")
 						.style("stroke-width", 2);
 
 					self.start.append("text")
@@ -291,7 +285,7 @@
 						.attr("y", "55%")
 						.attr("id", "start-text")
 						.text("START")
-						.style("font-size", 100)
+						.style("font-size", "4vw")
 						.style("font-weight", "bold");
 
 					self.start.on("mouseover", function() {
@@ -335,7 +329,7 @@
 								.attr("y", "55%")
 								.attr("id", "start-text")
 								.text("STOP")
-								.style("font-size", 100)
+								.style("font-size", "4vw")
 								.style("font-weight", "bold");
 
 							self.stop.on("mouseover", function() {
@@ -375,7 +369,7 @@
 									.attr("y", "80%")
 									.attr("id", "exp-text")
 									.text("EXPORT")
-									.style("font-size", 100)
+									.style("font-size", "4vw")
 									.style("font-weight", "bold");
 
 								self.exp.on("mouseover", function() {
@@ -400,11 +394,19 @@
 									function ConvertToCSV(objArray) {
 										var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
 										var str = '';
-										for (var i = 0; i < array.length; i++) {
+
+										var header = '';  //append header
+										for (var index in array[0]){
+											header += index + ',';
+										};
+										str += header + '\r\n';
+
+										for (var i = 0; i < array.length; i++) {  //append values
 											var line = '';
 											for (var index in array[i]) {
 												if (line != '') {line += ','};
-												line += array[i][index];
+												if (index == "time"){line += self.timeFormat(array[i][index]);}
+												else{line += array[i][index];};
 											}
 											str += line + '\r\n';
 										}

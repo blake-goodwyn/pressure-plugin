@@ -1,7 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../orov-behaviors/orov-behavior.html">
 <link rel="import" href="orov-chart.html">
-<!--<link rel="import" href="orov-button.html">-->
 <link rel="import" href="/components/video/container.html">
 
 <script type="text/javascript" src="js/d3.min.js"></script>
@@ -16,9 +15,9 @@
       width: 100%;
       height: 100%;
       display: inline-block;
-      background: #fff;
+      background: #F4F7F5;
       border-radius: 0.4vw;
-      color:#000;
+      color:#2d2d2a;
       overflow: hidden;
       position: relative;
     }
@@ -63,7 +62,6 @@
           <template is="dom-if" if="{{ getFilter(rowindex, colindex) }}">
             <div class="widget-c" style$="width:{{getWidth(rowindex,colindex)}}%; height:{{getHeight(rowindex,colindex)}}%; left:{{getLeft(colindex)}}%; top:{{getTop(rowindex)}}%;" >
               <div class="widget" data-id$="{{col}}">
-               <!-- <span class="title" title$="[[getValue(element.*, col, 'description')]]">[[getValue(element.*, col, 'title')]]</span> -->
               </div>
             </div>
           </template>
@@ -100,8 +98,6 @@
               return {
                  'deep':{
                     attr:{
-                      min: 0.1,
-                      max: 5,
                       inverted: true
                     }
                  },
