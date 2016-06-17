@@ -1,64 +1,72 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../orov-behaviors/orov-behavior.html">
 <dom-module id="orov-chart">
-	<style>
-	.content-container,#chart{
-		position: absolute;
-		left:0;
-		top:0;
-		bottom:0;
-		right:0;
-	}
-	.line {
-	    fill: none;
-	    stroke-width: 0.25vh;
-		stroke: #30609B;
-	}
-	.value{
-      position: absolute;
-      top: 19.5%;
-      transform: translateY(-50%) translateX(-50%);
-      left: 75%;
-      font-size: 2vw;
-      font-weight: 300;
-	  text-anchor: end;
-    }
-	.pressure{
-      position: absolute;
-      top: 26%;
-      transform: translateY(-50%) translateX(-50%);
-      left: 78.55%;
-      font-size: 2vw;
-      font-weight: 300;
-	  text-anchor: end;
-    }
-	.time.prefix{
-      position: absolute;
-      top: 32.5%;
-      transform: translateY(-50%) translateX(-50%);
-      left: 71.5%;
-      font-size: 2vw;
-      font-weight: 300;
-	  text-anchor: end;
-    }
-	.time{
-      position: absolute;
-      top: 32.5%;
-      transform: translateY(-50%) translateX(-50%);
-      left: 82%;
-      font-size: 2vw;
-      font-weight: 300;
-	  text-anchor: start;
-    }
-	.tick text{
-		font-size: 1vw;
-		fill:#2d2d2a;
-	}
-	.domain {
-		fill: #C0C0C0;
-	}
-	</style>
-	<template>
+    <style>
+        .content-container,
+        #chart {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            right: 0;
+        }
+        
+        .line {
+            fill: none;
+            stroke-width: 0.25vh;
+            stroke: #30609B;
+        }
+        
+        .value {
+            position: absolute;
+            top: 19.5%;
+            transform: translateY(-50%) translateX(-50%);
+            left: 75%;
+            font-size: 2vw;
+            font-weight: 300;
+            text-anchor: end;
+        }
+        
+        .pressure {
+            position: absolute;
+            top: 26%;
+            transform: translateY(-50%) translateX(-50%);
+            left: 78.55%;
+            font-size: 2vw;
+            font-weight: 300;
+            text-anchor: end;
+        }
+        
+        .time.prefix {
+            position: absolute;
+            top: 32.5%;
+            transform: translateY(-50%) translateX(-50%);
+            left: 71.5%;
+            font-size: 2vw;
+            font-weight: 300;
+            text-anchor: end;
+        }
+        
+        .time {
+            position: absolute;
+            top: 32.5%;
+            transform: translateY(-50%) translateX(-50%);
+            left: 82%;
+            font-size: 2vw;
+            font-weight: 300;
+            text-anchor: start;
+        }
+        
+        .tick text {
+            font-size: 1vw;
+            fill: #2d2d2a;
+        }
+        
+        .domain {
+            fill: #C0C0C0;
+        }
+    </style>
+    <template>
 		<div class="content-container">
 			<content>
 			<span class="value" align="right"> Current Depth: {{value}} m</span>
@@ -70,397 +78,430 @@
 			</content>
 		</div>
 	</template>
-	<script>
-		Polymer({
-			is: 'orov-chart',
-			properties: {
-				value: {
-					Type: Number
-				},
-				pressure: {
-					Type: Number
-				},
-				startTime : {
-					Type: Number
-				},
-				dispTime : {
-					Type: Number
-				},
-				type: {
-					Type: String,
-					notify: true
-				},
-				tick: {
-					Type: Number,
-					value: 40,
-					observer: 'tickChanged'
-				},
-				width: Number,
-				height: {
-					type: Number,
-					value: 400
-				},
-				min: Number,
-				max: Number,
-				inverted: {
-					Type: Boolean,
-					value: false
-				},
-				data: Array,
-				output: Object,
-			},
-			behaviors: [namespace('behaviors').oROVStandard],
-			registerEmitterHanlders: function(emitter) {
-				var self = this;
-				emitter.on('plugin.engineering.data', function(data) {
-					if (data[self.type]) {
-						self.dataChanged(parseFloat(data[self.type]));
-						self.lastData = data[self.type];
-					}
-				});
-			},
-			dataChanged: function(val) {
-				if (!this.data) this.data = [];
+    <script>
+        Polymer({
+            is: 'orov-chart',
+            properties: {
+                value: {
+                    Type: Number
+                },
+                pressure: {
+                    Type: Number
+                },
+                startTime: {
+                    Type: Number
+                },
+                dispTime: {
+                    Type: Number
+                },
+                type: {
+                    Type: String,
+                    notify: true
+                },
+                tick: {
+                    Type: Number,
+                    value: 40,
+                    observer: 'tickChanged'
+                },
+                width: Number,
+                height: {
+                    type: Number,
+                    value: 400
+                },
+                min: Number,
+                max: Number,
+                inverted: {
+                    Type: Boolean,
+                    value: false
+                },
+                data: Array,
+                output: Object,
+            },
+            behaviors: [namespace('behaviors').oROVStandard],
+            registerEmitterHanlders: function(emitter) {
+                var self = this;
+                emitter.on('plugin.engineering.data', function(data) {
+                    if (data[self.type]) {
+                        self.dataChanged(parseFloat(data[self.type]));
+                        self.lastData = data[self.type];
+                    }
+                });
+            },
+            dataChanged: function(val) {
+                if (!this.data) this.data = [];
 
-				if (/^-?[0-9]+$/.test(val)) {
-					this.value = val;
-				} else {
-					this.value = parseFloat(val).toFixed(2);
-				};
+                if (/^-?[0-9]+$/.test(val)) {
+                    this.value = val;
+                } else {
+                    this.value = parseFloat(val).toFixed(2);
+                };
 
-				this.pressure = parseFloat((val*1027*9.8*1.45e-4) + 14.6).toFixed(2) ; 
-				//pressure conversion (Depth*Density*Gravity*Conversion Factor (Pa => psi) + Atmospheric Pressure)
+                this.pressure = parseFloat((val * 1027 * 9.8 * 1.45e-4) + 14.6).toFixed(2);
+                //pressure conversion (Depth*Density*Gravity*Conversion Factor (Pa => psi) + Atmospheric Pressure)
 
-				this.data.push(val);
-				
-				if(this.drawFlag){
-					this.draw();
-				};
-			},
+                this.data.push(val);
 
-			draw: function() {
-				var self = this;
-				if (!this.data) {
-					return;
-				}
+                if (this.drawFlag) {
+                    this.draw();
+                };
+            },
 
-				//obtain current data
-				self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
+            draw: function() {
+                var self = this;
+                if (!this.data) {
+                    return;
+                }
 
-				//structure current time output
-				self.curTime = parseFloat(Math.floor((Date.now() - self.startTime)/1000)).toFixed(0);
-				self.dispTime = self.timeFormat(self.curTime);
-		
-				if(!self.prevTime){self.prevTime = self.curTime;}; //datastream threshold (.toFixed(0) ==> 1Hz)
+                //obtain current data
+                self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
 
-				if((self.prevTime != self.curTime) || (self.output.length == 0)){
-					self.output.push({"time":self.curTime,"depth":(self.curData[self.curData.length-1]).toFixed(2),"pressure":self.pressure});
-					self.prevTime = self.curTime;
-				};
+                //structure current time output
+                self.curTime = parseFloat(Math.floor((Date.now() - self.startTime) / 1000)).toFixed(0);
+                self.dispTime = self.timeFormat(self.curTime);
 
-				//obtain current widget dimensions
-				self.width = self.elem.offsetWidth;
-				self.height = self.elem.offsetHeight;
-				self.padding = 0.1;
+                if (!self.prevTime) {
+                    self.prevTime = self.curTime;
+                }; //datastream threshold (.toFixed(0) ==> 1Hz)
 
-				//update axes and path
-				self.x.range([self.padding*self.width, (1-4*self.padding)*self.width]);
-				self.y.range([(1-self.padding)*self.height, 2*self.padding*self.height]);
-				self.x.domain([0, self.curTime]);
-				self.y.domain([0.1, 1.25*d3.max(self.curData)]);
-				self.path.datum(self.output).attr("d", self.line);
+                if ((self.prevTime != self.curTime) || (self.output.length == 0)) {
+                    self.output.push({
+                        "time": self.curTime,
+                        "depth": (self.curData[self.curData.length - 1]).toFixed(2),
+                        "pressure": self.pressure
+                    });
+                    self.prevTime = self.curTime;
+                };
 
-				//translate and transition
-				if ((!self.yChart) || (!self.xChart)) { //no defined axes
+                //obtain current widget dimensions
+                self.width = self.elem.offsetWidth;
+                self.height = self.elem.offsetHeight;
+                self.padding = 0.1;
 
-					self.yChart = self.svg.append("g")
-						.attr("class","y axis")
-						.attr("transform","translate(" + self.padding*self.width + ",0)")
-						.call(self.yAxis);
+                //update axes and path
+                self.x.range([self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
+                self.x.domain([0, self.curTime]);
+                self.y.domain([0.1, 1.25 * d3.max(self.curData)]);
+                self.path.datum(self.output).attr("d", self.line);
 
-					self.xChart = self.svg.append("g")
-						.attr("class","x axis")
-						.attr("transform","translate(0," + (1-self.padding)*self.height + ")")
-						.call(self.xAxis);
+                //translate and transition
+                if ((!self.yChart) || (!self.xChart)) { //no defined axes
 
-					self.yLabel = self.svg.append("text")
-						.attr("x","5%")
-						.attr("y","18.5%")
-						.text("Depth (m)")
-						.style("font-size", "1vw")
-						.style("font-weight", "bold");
+                    self.yChart = self.svg.append("g")
+                        .attr("class", "y axis")
+                        .attr("transform", "translate(" + self.padding * self.width + ",0)")
+                        .call(self.yAxis);
 
-					if(!!self.yLabel){console.log(test)};
-					
-				}else{ //scale transitions
-					self.svg.select(".x.axis")
-					.attr("transform","translate(0," + (1-self.padding)*self.height + ")")
-					.transition()
-					.duration(1000)
-					.ease("linear")
-					.call(self.xAxis);
+                    self.xChart = self.svg.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
+                        .call(self.xAxis);
 
-				self.svg.select(".y.axis")
-					.attr("transform","translate(" + self.padding*self.width + ",0)")
-					.transition()
-					.duration(1000)
-					.ease("linear")
-					.call(self.yAxis);
-				}
+                    /*self.yLabel = self.svg.append("text")
+                        .attr("x", "5%")
+                        .attr("y", "18.5%")
+                        .text("Depth (m)")
+                        .style("font-size", "1vw")
+                        .style("font-weight", "bold");*/
 
-			},
+                } else { //scale transitions
+                    self.svg.select(".x.axis")
+                        .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
+                        .transition()
+                        .duration(1000)
+                        .ease("linear")
+                        .call(self.xAxis);
 
-			ready: function() {
+                    self.svg.select(".y.axis")
+                        .attr("transform", "translate(" + self.padding * self.width + ",0)")
+                        .transition()
+                        .duration(1000)
+                        .ease("linear")
+                        .call(self.yAxis);
+                }
+            },
 
-				if (!this.data) this.data = [];
+            ready: function() {
 
-				this.elem = this.$.chart;
-				var self = this;
-				self.width = self.$.chart.clientWidth;
-				self.height = self.$.chart.clientHeight;
-				self.drawFlag = false;
-				self.buttonX = "64%";
-				self.textX = "76.5%";
+                if (!this.data) this.data = [];
 
-				self.x = d3.scale.linear();
-				self.y = d3.scale.linear();
+                this.elem = this.$.chart;
+                var self = this;
+                self.width = self.$.chart.clientWidth;
+                self.height = self.$.chart.clientHeight;
+                self.drawFlag = false;
+                self.buttonX = "64%";
+                self.textX = "76.5%";
 
-				self.line = d3.svg.line()
-					.x(function(d) { return self.x(d["time"]); })
-					.y(function(d) { return self.y(d["depth"]); })
-					.interpolate("basis");
+                self.x = d3.scale.linear();
+                self.y = d3.scale.linear();
 
-				self.timeFormat = function (time){ //curTime => dispTime
-					if (time < 60){
-						return "0:" + ((time % 60 < 10) ? ("0" + (time % 60)) : (time % 60));
-					}else if (self.curTime < 3600){
-						return Math.floor(time/60) + ":" + ((time % 60 < 10) ? "0" + (time % 60) : (time % 60));
-					};
-				};
+                self.line = d3.svg.line()
+                    .x(function(d) {
+                        return self.x(d["time"]);
+                    })
+                    .y(function(d) {
+                        return self.y(d["depth"]);
+                    })
+                    .interpolate("basis");
 
-				self.svg = d3.select(self.$.chart).append("svg")
-					.attr("width", '100%')
-					.attr("height", '100%');
+                self.timeFormat = function(time) { //curTime => dispTime
+                    if (time < 60) {
+                        return "0:" + ((time % 60 < 10) ? ("0" + (time % 60)) : (time % 60));
+                    } else if (self.curTime < 3600) {
+                        return Math.floor(time / 60) + ":" + ((time % 60 < 10) ? "0" + (time % 60) : (time % 60));
+                    };
+                };
 
-				self.imgs = self.svg.selectAll("img").data([0]);
-						
-				self.imgs.enter() //logo
-					.append("svg:image")
-					.attr("xlink:href", "/components/pressure-plugin/logo.png")
-					.attr("x", "5%")
-					.attr("y", "-5%")
-					.attr("width", "30%")
-					.attr("height", "30%");
+                self.svg = d3.select(self.$.chart).append("svg")
+                    .attr("width", '100%')
+                    .attr("height", '100%');
 
-				//y-axis
-				self.yAxis = d3.svg.axis().orient("left").scale(self.y);
+                self.imgs = self.svg.selectAll("img").data([0]);
 
-				//x-axis
-				self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(self.timeFormat);
+                self.imgs.enter() //logo
+                    .append("svg:image")
+                    .attr("xlink:href", "/components/pressure-plugin/logo.png")
+                    .attr("x", "5%")
+                    .attr("y", "-5%")
+                    .attr("width", "30%")
+                    .attr("height", "30%");
 
-				self.path = self.svg.append("g")
-					.attr("clip-path", "url(#clip)")
-					.append("path")
-					.attr("class", "line")
-					.datum([])
-					.attr("d", self.line);
+                //y-axis
+                self.yAxis = d3.svg.axis().orient("left").scale(self.y);
 
-				/*Initialize button stuff here*/
-				self.startApp = function(){
-					self.start = self.svg.append("g").attr("id", "start");
+                //x-axis
+                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(self.timeFormat);
 
-					self.start.append("rect")
-						.attr("x", self.buttonX)
-						.attr("y", "42.5%")
-						.attr("height", "20%")
-						.attr("width", "25%")
-						.attr("id", "start-rect")
-						.style("fill", "#EFF8FB")
-						.style("stroke", "#2d2d2a")
-						.style("stroke-width", 2);
+                self.path = self.svg.append("g")
+                    .attr("clip-path", "url(#clip)")
+                    .append("path")
+                    .attr("class", "line")
+                    .datum([])
+                    .attr("d", self.line);
 
-					self.start.append("text")
-						.style("text-anchor", "middle")
-						.attr("x", self.textX)
-						.attr("y", "55%")
-						.attr("id", "start-text")
-						.text("START")
-						.style("font-size", "4vw")
-						.style("font-weight", "bold");
+                /*Initialize button stuff here*/
+                self.startApp = function() {
+                    self.start = self.svg.append("g").attr("id", "start");
 
-					self.start.on("mouseover", function() {
-						self.svg.select("#start-rect")
-						.style("fill", "#81BEF7")
-						.style("stroke-opacity", 0.4);
-						document.body.style.cursor = "pointer";
-					});
+                    self.start.append("rect")
+                        .attr("x", self.buttonX)
+                        .attr("y", "42.5%")
+                        .attr("height", "20%")
+                        .attr("width", "25%")
+                        .attr("id", "start-rect")
+                        .style("fill", "#EFF8FB")
+                        .style("stroke", "#2d2d2a")
+                        .style("stroke-width", 2);
 
-					self.start.on("mouseout", function() {
-						self.svg.select("#start-rect")
-						.style("fill", "#EFF8FB")
-						.style("stroke-opacity", 1.0);
-						document.body.style.cursor = "default";
-					});
+                    self.start.append("text")
+                        .style("text-anchor", "middle")
+                        .attr("x", self.textX)
+                        .attr("y", "55%")
+                        .attr("id", "start-text")
+                        .text("START")
+                        .style("font-size", "4vw")
+                        .style("font-weight", "bold");
 
-					self.start.on("click", function(){
+                    self.start.on("mouseover", function() {
+                        self.svg.select("#start-rect")
+                            .transition()
+                            .duration(100)
+                            .ease("cubic")
+                            .style("fill", "#81BEF7")
+                            .style("stroke-opacity", 0.4);
+                        document.body.style.cursor = "pointer";
+                    });
 
-							self.start.remove();
-							if(!!self.exp){self.exp.remove();};
-							self.output = [];
-							self.startTime = Date.now();
-							self.startIdx = self.data.length;
-							self.drawFlag = true;
+                    self.start.on("mouseout", function() {
+                        self.svg.select("#start-rect")
+                            .transition()
+                            .duration(100)
+                            .ease("cubic")
+                            .style("fill", "#EFF8FB")
+                            .style("stroke-opacity", 1.0);
+                        document.body.style.cursor = "default";
+                    });
 
-							self.stop = self.svg.append("g").attr("id", "stop");
+                    self.start.on("click", function() {
 
-							self.stop.append("rect")
-								.attr("x", self.buttonX)
-								.attr("y", "42.5%")
-								.attr("height", "20%")
-								.attr("width", "25%")
-								.attr("id", "start-rect")
-								.style("fill", "#EFF8FB")
-								.style("stroke", "black")
-								.style("stroke-width", 2);
+                        self.start.remove();
+                        if (!!self.exp) {
+                            self.exp.remove();
+                        };
+                        self.output = [];
+                        self.startTime = Date.now();
+                        self.startIdx = self.data.length;
+                        self.drawFlag = true;
 
-							self.stop.append("text")
-								.style("text-anchor", "middle")
-								.attr("x", self.textX)
-								.attr("y", "55%")
-								.attr("id", "start-text")
-								.text("STOP")
-								.style("font-size", "4vw")
-								.style("font-weight", "bold");
+                        self.stop = self.svg.append("g").attr("id", "stop");
 
-							self.stop.on("mouseover", function() {
-								self.svg.select("#start-rect")
-								.style("fill", "#81BEF7")
-								.style("stroke-opacity", 0.4);
-								document.body.style.cursor = "pointer";
-							});
+                        self.stop.append("rect")
+                            .attr("x", self.buttonX)
+                            .attr("y", "42.5%")
+                            .attr("height", "20%")
+                            .attr("width", "25%")
+                            .attr("id", "start-rect")
+                            .style("fill", "#EFF8FB")
+                            .style("stroke", "black")
+                            .style("stroke-width", 2);
 
-							self.stop.on("mouseout", function() {
-								self.svg.select("#start-rect")
-								.style("fill", "#EFF8FB")
-								.style("stroke-opacity", 1.0);
-								document.body.style.cursor = "default";
-							});
+                        self.stop.append("text")
+                            .style("text-anchor", "middle")
+                            .attr("x", self.textX)
+                            .attr("y", "55%")
+                            .attr("id", "start-text")
+                            .text("STOP")
+                            .style("font-size", "4vw")
+                            .style("font-weight", "bold");
 
-							self.stop.on("click", function(){
-								self.stop.remove();
-								self.drawFlag = false;
+                        self.stop.on("mouseover", function() {
+                            self.svg.select("#start-rect")
+                                .transition()
+                                .duration(100)
+                                .ease("cubic")
+                                .style("fill", "#81BEF7")
+                                .style("stroke-opacity", 0.4);
+                            document.body.style.cursor = "pointer";
+                        });
 
-								//Append export button
-								self.exp = self.svg.append("g").attr("id", "export");
+                        self.stop.on("mouseout", function() {
+                            self.svg.select("#start-rect")
+                                .transition()
+                                .duration(100)
+                                .ease("cubic")
+                                .style("fill", "#EFF8FB")
+                                .style("stroke-opacity", 1.0);
+                            document.body.style.cursor = "default";
+                        });
 
-								self.exp.append("rect")
-									.attr("x", self.buttonX)
-									.attr("y", "67.5%")
-									.attr("height", "20%")
-									.attr("width", "25%")
-									.attr("id", "exp-rect")
-									.style("fill", "#EFF8FB")
-									.style("stroke", "black")
-									.style("stroke-width", 2);
+                        self.stop.on("click", function() {
+                            self.stop.remove();
+                            self.drawFlag = false;
 
-								self.exp.append("text")
-									.style("text-anchor", "middle")
-									.attr("x", self.textX)
-									.attr("y", "80%")
-									.attr("id", "exp-text")
-									.text("EXPORT")
-									.style("font-size", "4vw")
-									.style("font-weight", "bold");
+                            //Append export button
+                            self.exp = self.svg.append("g").attr("id", "export");
 
-								self.exp.on("mouseover", function() {
-									self.svg.select("#exp-rect")
-									.style("fill", "#81BEF7")
-									.style("stroke-opacity", 0.4);
-									document.body.style.cursor = "pointer";
-								});
+                            self.exp.append("rect")
+                                .attr("x", self.buttonX)
+                                .attr("y", "67.5%")
+                                .attr("height", "20%")
+                                .attr("width", "25%")
+                                .attr("id", "exp-rect")
+                                .style("fill", "#EFF8FB")
+                                .style("stroke", "black")
+                                .style("stroke-width", 2);
 
-								self.exp.on("mouseout", function() {
-									self.svg.select("#exp-rect")
-									.style("fill", "#EFF8FB")
-									.style("stroke-opacity", 1.0);
-									document.body.style.cursor = "default";
-								});
+                            self.exp.append("text")
+                                .style("text-anchor", "middle")
+                                .attr("x", self.textX)
+                                .attr("y", "80%")
+                                .attr("id", "exp-text")
+                                .text("EXPORT")
+                                .style("font-size", "4vw")
+                                .style("font-weight", "bold");
 
-								self.exp.on("click", function(){
+                            self.exp.on("mouseover", function() {
+                                self.svg.select("#exp-rect")
+                                    .transition()
+                                    .duration(100)
+                                    .ease("cubic")
+                                    .style("fill", "#81BEF7")
+                                    .style("stroke-opacity", 0.4);
+                                document.body.style.cursor = "pointer";
+                            });
 
-									var name = prompt('What would you like to call this file? (no need to add any extensions!)');
-									if(!!name){download((name+'.csv'),ConvertToCSV(self.output));};
+                            self.exp.on("mouseout", function() {
+                                self.svg.select("#exp-rect")
+                                    .transition()
+                                    .duration(100)
+                                    .ease("cubic")
+                                    .style("fill", "#EFF8FB")
+                                    .style("stroke-opacity", 1.0);
+                                document.body.style.cursor = "default";
+                            });
 
-									function ConvertToCSV(objArray) {
-										var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
-										var str = '';
+                            self.exp.on("click", function() {
 
-										var header = '';  //append header
-										for (var index in array[0]){
-											header += index + ',';
-										};
-										str += header + '\r\n';
+                                var name = prompt('What would you like to call this file? (no need to add any extensions!)');
+                                if (!!name) {
+                                    download((name + '.csv'), ConvertToCSV(self.output));
+                                };
 
-										for (var i = 0; i < array.length; i++) {  //append values
-											var line = '';
-											for (var index in array[i]) {
-												if (line != '') {line += ','};
-												if (index == "time"){line += self.timeFormat(array[i][index]);}
-												else{line += array[i][index];};
-											}
-											str += line + '\r\n';
-										}
-										return str;
-									};
+                                function ConvertToCSV(objArray) {
+                                    var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+                                    var str = '';
 
-									function download(filename, text) {
-										var pom = document.createElement('a');
-										pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-										pom.setAttribute('download', filename);
+                                    var header = ''; //append header
+                                    for (var index in array[0]) {
+                                        header += index + ',';
+                                    };
+                                    str += header + '\r\n';
 
-										if (document.createEvent) {
-											var event = document.createEvent('MouseEvents');
-											event.initEvent('click', true, true);
-											pom.dispatchEvent(event);
-										}
-										else {
-											pom.click();
-										};
-									};
-								});
-							
-								self.startApp();
-							})
-					});
-				};
+                                    for (var i = 0; i < array.length; i++) { //append values
+                                        var line = '';
+                                        for (var index in array[i]) {
+                                            if (line != '') {
+                                                line += ','
+                                            };
+                                            if (index == "time") {
+                                                line += self.timeFormat(array[i][index]);
+                                            } else {
+                                                line += array[i][index];
+                                            };
+                                        }
+                                        str += line + '\r\n';
+                                    }
+                                    return str;
+                                };
 
-				self.startApp();
+                                function download(filename, text) {
+                                    var pom = document.createElement('a');
+                                    pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                                    pom.setAttribute('download', filename);
 
-				window.addEventListener('resize', function() {
-					self.width = self.elem.offsetWidth;
-					self.height = self.elem.offsetHeight;
+                                    if (document.createEvent) {
+                                        var event = document.createEvent('MouseEvents');
+                                        event.initEvent('click', true, true);
+                                        pom.dispatchEvent(event);
+                                    } else {
+                                        pom.click();
+                                    };
+                                };
+                            });
 
-					self.x.range([self.padding*self.width, (1-4*self.padding)*self.width]);
-					self.y.range([(1-self.padding)*self.height, 2*self.padding*self.height]);
+                            self.startApp();
+                        })
+                    });
+                };
+
+                self.startApp();
+
+                window.addEventListener('resize', function() {
+                    self.width = self.elem.offsetWidth;
+                    self.height = self.elem.offsetHeight;
+
+                    self.x.range([self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                    self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
 
 
-					if ((!!self.yChart) && (!!self.xChart)){
-						self.svg.selectAll(".axis").remove();
+                    if ((!!self.yChart) && (!!self.xChart)) {
+                        self.svg.selectAll(".axis").remove();
 
-						self.yChart = self.svg.append("g")
-							.attr("class","y axis")
-							.attr("transform","translate(" + self.padding*self.width + ",0)")
-							.call(self.yAxis);
+                        self.yChart = self.svg.append("g")
+                            .attr("class", "y axis")
+                            .attr("transform", "translate(" + self.padding * self.width + ",0)")
+                            .call(self.yAxis);
 
-						self.xChart = self.svg.append("g")
-							.attr("class","x axis")
-							.attr("transform","translate(0," + (1-self.padding)*self.height + ")")
-							.call(self.xAxis);
-					};
+                        self.xChart = self.svg.append("g")
+                            .attr("class", "x axis")
+                            .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
+                            .call(self.xAxis);
+                    };
 
-					self.path.transition().attr("d", self.line);
-				}, true);
-			}
-		});
-	</script>
+                    self.path.transition().attr("d", self.line);
+                }, true);
+            }
+        });
+    </script>
 </dom-module>
