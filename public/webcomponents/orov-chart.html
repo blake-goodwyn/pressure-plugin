@@ -14,12 +14,9 @@
 	    stroke-width: 3;
 		stroke: #3071AF;
 	}
-	svg {
-		font: 10px sans-serif;
-	}
 	.value{
       position: absolute;
-      top: 7.5%;
+      top: 19.5%;
       transform: translateY(-50%) translateX(-50%);
       left: 75%;
       font-size: 2vw;
@@ -28,7 +25,7 @@
     }
 	.pressure{
       position: absolute;
-      top: 12.5%;
+      top: 26%;
       transform: translateY(-50%) translateX(-50%);
       left: 78.55%;
       font-size: 2vw;
@@ -37,7 +34,7 @@
     }
 	.time.prefix{
       position: absolute;
-      top: 17.5%;
+      top: 32.5%;
       transform: translateY(-50%) translateX(-50%);
       left: 71.5%;
       font-size: 2vw;
@@ -46,20 +43,19 @@
     }
 	.time{
       position: absolute;
-      top: 17.5%;
+      top: 32.5%;
       transform: translateY(-50%) translateX(-50%);
       left: 83%;
       font-size: 2vw;
       font-weight: 300;
 	  text-anchor: start;
     }
-
-    .value[prefix]:after{
-        content: " " attr(prefix);
-        font-size: 1vw;
-    }
 	.tick text{
-		font-size: 1.15vw;
+		font-size: 1vw;
+		fill: #4E4E4E;
+	}
+	.domain {
+		fill:#4E4E4E;
 	}
 	</style>
 	<template>
@@ -77,7 +73,6 @@
 	<script>
 		Polymer({
 			is: 'orov-chart',
-
 			properties: {
 				value: {
 					Type: Number
@@ -174,11 +169,12 @@
 				self.x.range([self.padding*self.width, (1-4*self.padding)*self.width]);
 				self.y.range([(1-self.padding)*self.height, 2*self.padding*self.height]);
 				self.x.domain([0, self.tmpLength]);
-				self.y.domain([(self.min ? d3.min([self.min, 0.85*d3.min(self.curData)]) : d3.min(self.curData)), (self.max ? d3.max([self.max, 1.05*d3.max(self.curData)]) : d3.max(self.curData))]);
+				self.y.domain([0.1, 1.25*d3.max(self.curData)]);
 				self.path.datum(self.curData).attr("d", self.line);
 
 				//translate and transition
 				if (self.curTime < 2 || (!self.yChart) || (!self.xChart)) {
+					
 					self.svg.selectAll(".axis").remove();
 
 					self.yChart = self.svg.append("g")
@@ -219,6 +215,8 @@
 				self.width = self.$.chart.clientWidth;
 				self.height = self.$.chart.clientHeight;
 				self.drawFlag = false;
+				self.buttonX = "64%";
+				self.textX = "76.5%";
 
 				self.x = d3.scale.linear();
 				self.y = d3.scale.linear();
@@ -226,7 +224,7 @@
 				self.line = d3.svg.line()
 					.x(function(d, i) { return self.x(i); })
 					.y(function(d) { return self.y(d); })
-					.interpolate("cardinal");
+					.interpolate("basis");
 
 				self.svg = d3.select(self.$.chart).append("svg")
 					.attr("width", '100%')
@@ -237,9 +235,9 @@
 				self.imgs.enter()
 					.append("svg:image")
 					.attr("xlink:href", "/components/pressure-plugin/logo.png")
-					.attr("x", "3%")
+					.attr("x", "5%")
 					.attr("y", "-5%")
-					.attr("width", "25%")
+					.attr("width", "30%")
 					.attr("height", "30%");
 
 				//y-axis
@@ -272,8 +270,8 @@
 					self.start = self.svg.append("g").attr("id", "start");
 
 					self.start.append("rect")
-						.attr("x", "67.5%")
-						.attr("y", "25%")
+						.attr("x", self.buttonX)
+						.attr("y", "42.5%")
 						.attr("height", "20%")
 						.attr("width", "25%")
 						.attr("id", "start-rect")
@@ -283,8 +281,8 @@
 
 					self.start.append("text")
 						.style("text-anchor", "middle")
-						.attr("x", "80%")
-						.attr("y", "37.5%")
+						.attr("x", self.textX)
+						.attr("y", "55%")
 						.attr("id", "start-text")
 						.text("START")
 						.style("font-size", 100)
@@ -316,8 +314,8 @@
 							self.stop = self.svg.append("g").attr("id", "stop");
 
 							self.stop.append("rect")
-								.attr("x", "67.5%")
-								.attr("y", "25%")
+								.attr("x", self.buttonX)
+								.attr("y", "42.5%")
 								.attr("height", "20%")
 								.attr("width", "25%")
 								.attr("id", "start-rect")
@@ -327,8 +325,8 @@
 
 							self.stop.append("text")
 								.style("text-anchor", "middle")
-								.attr("x", "80%")
-								.attr("y", "37.5%")
+								.attr("x", self.textX)
+								.attr("y", "55%")
 								.attr("id", "start-text")
 								.text("STOP")
 								.style("font-size", 100)
@@ -356,8 +354,8 @@
 								self.exp = self.svg.append("g").attr("id", "export");
 
 								self.exp.append("rect")
-									.attr("x", "67.5%")
-									.attr("y", "55%")
+									.attr("x", self.buttonX)
+									.attr("y", "67.5%")
 									.attr("height", "20%")
 									.attr("width", "25%")
 									.attr("id", "exp-rect")
@@ -367,8 +365,8 @@
 
 								self.exp.append("text")
 									.style("text-anchor", "middle")
-									.attr("x", "80%")
-									.attr("y", "67.5%")
+									.attr("x", self.textX)
+									.attr("y", "80%")
 									.attr("id", "exp-text")
 									.text("EXPORT")
 									.style("font-size", 100)
