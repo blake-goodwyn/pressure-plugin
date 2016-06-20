@@ -178,18 +178,18 @@
                 self.padding = 0.1;
 
                 //update axes and path
-                self.x.range([self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.1, 1.25 * d3.max(self.curData)]);
-                self.path.datum(self.output).attr("d", self.line);
+                self.path.datum(self.output).transition().duration(1000).ease("linear").attr("d", self.line);
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
 
                     self.yChart = self.svg.append("g")
                         .attr("class", "y axis")
-                        .attr("transform", "translate(" + self.padding * self.width + ",0)")
+                        .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .call(self.yAxis);
 
                     self.xChart = self.svg.append("g")
@@ -213,7 +213,7 @@
                         .call(self.xAxis);
 
                     self.svg.select(".y.axis")
-                        .attr("transform", "translate(" + self.padding * self.width + ",0)")
+                        .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .transition()
                         .duration(1000)
                         .ease("linear")
@@ -243,7 +243,7 @@
                     .y(function(d) {
                         return self.y(d["depth"]);
                     })
-                    .interpolate("basis");
+                    .interpolate("linear");
 
                 self.timeFormat = function(time) { //curTime => dispTime
                     if (time < 60) {
@@ -262,7 +262,7 @@
                 self.imgs.enter() //logo
                     .append("svg:image")
                     .attr("xlink:href", "/components/pressure-plugin/logo.png")
-                    .attr("x", "5%")
+                    .attr("x", "5.5%")
                     .attr("y", "-5%")
                     .attr("width", "30%")
                     .attr("height", "30%");
@@ -323,86 +323,48 @@
                         document.body.style.cursor = "default";
                     });
 
+                    if(!!self.output && self.output.length > 0){ self.holdup = true;}
+                    else{self.holdup = false;}
+
                     self.start.on("click", function() {
 
-                        self.start.remove();
-                        if (!!self.exp) {
-                            self.exp.remove();
-                        };
-                        self.output = [];
-                        self.startTime = Date.now();
-                        self.startIdx = self.data.length;
-                        self.drawFlag = true;
+                        var allow = true;
+                        if (self.holdup){allow = confirm("A dataset already exists. Continue?")};
 
-                        self.stop = self.svg.append("g").attr("id", "stop");
+                        if (allow){
 
-                        self.stop.append("rect")
-                            .attr("x", self.buttonX)
-                            .attr("y", "42.5%")
-                            .attr("height", "20%")
-                            .attr("width", "25%")
-                            .attr("id", "start-rect")
-                            .style("fill", "#EFF8FB")
-                            .style("stroke", "black")
-                            .style("stroke-width", 2);
+                            self.start.remove();
+                            if (!!self.exp) {
+                                self.exp.remove();
+                            };
+                            self.output = [];
+                            self.startTime = Date.now();
+                            self.startIdx = self.data.length;
+                            self.drawFlag = true;
 
-                        self.stop.append("text")
-                            .style("text-anchor", "middle")
-                            .attr("x", self.textX)
-                            .attr("y", "55%")
-                            .attr("id", "start-text")
-                            .text("STOP")
-                            .style("font-size", "4vw")
-                            .style("font-weight", "bold");
+                            self.stop = self.svg.append("g").attr("id", "stop");
 
-                        self.stop.on("mouseover", function() {
-                            self.svg.select("#start-rect")
-                                .transition()
-                                .duration(100)
-                                .ease("cubic")
-                                .style("fill", "#81BEF7")
-                                .style("stroke-opacity", 0.4);
-                            document.body.style.cursor = "pointer";
-                        });
-
-                        self.stop.on("mouseout", function() {
-                            self.svg.select("#start-rect")
-                                .transition()
-                                .duration(100)
-                                .ease("cubic")
-                                .style("fill", "#EFF8FB")
-                                .style("stroke-opacity", 1.0);
-                            document.body.style.cursor = "default";
-                        });
-
-                        self.stop.on("click", function() {
-                            self.stop.remove();
-                            self.drawFlag = false;
-
-                            //Append export button
-                            self.exp = self.svg.append("g").attr("id", "export");
-
-                            self.exp.append("rect")
+                            self.stop.append("rect")
                                 .attr("x", self.buttonX)
-                                .attr("y", "67.5%")
+                                .attr("y", "42.5%")
                                 .attr("height", "20%")
                                 .attr("width", "25%")
-                                .attr("id", "exp-rect")
+                                .attr("id", "start-rect")
                                 .style("fill", "#EFF8FB")
                                 .style("stroke", "black")
                                 .style("stroke-width", 2);
 
-                            self.exp.append("text")
+                            self.stop.append("text")
                                 .style("text-anchor", "middle")
                                 .attr("x", self.textX)
-                                .attr("y", "80%")
-                                .attr("id", "exp-text")
-                                .text("EXPORT")
+                                .attr("y", "55%")
+                                .attr("id", "start-text")
+                                .text("STOP")
                                 .style("font-size", "4vw")
                                 .style("font-weight", "bold");
 
-                            self.exp.on("mouseover", function() {
-                                self.svg.select("#exp-rect")
+                            self.stop.on("mouseover", function() {
+                                self.svg.select("#start-rect")
                                     .transition()
                                     .duration(100)
                                     .ease("cubic")
@@ -411,8 +373,8 @@
                                 document.body.style.cursor = "pointer";
                             });
 
-                            self.exp.on("mouseout", function() {
-                                self.svg.select("#exp-rect")
+                            self.stop.on("mouseout", function() {
+                                self.svg.select("#start-rect")
                                     .transition()
                                     .duration(100)
                                     .ease("cubic")
@@ -421,57 +383,104 @@
                                 document.body.style.cursor = "default";
                             });
 
-                            self.exp.on("click", function() {
+                            self.stop.on("click", function() {
+                                self.stop.remove();
+                                self.drawFlag = false;
 
-                                var name = prompt('What would you like to call this file? (no need to add any extensions!)');
-                                if (!!name) {
-                                    download((name + '.csv'), ConvertToCSV(self.output));
-                                };
+                                //Append export button
+                                self.exp = self.svg.append("g").attr("id", "export");
 
-                                function ConvertToCSV(objArray) {
-                                    var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
-                                    var str = '';
+                                self.exp.append("rect")
+                                    .attr("x", self.buttonX)
+                                    .attr("y", "67.5%")
+                                    .attr("height", "20%")
+                                    .attr("width", "25%")
+                                    .attr("id", "exp-rect")
+                                    .style("fill", "#EFF8FB")
+                                    .style("stroke", "black")
+                                    .style("stroke-width", 2);
 
-                                    var header = ''; //append header
-                                    for (var index in array[0]) {
-                                        header += index + ',';
+                                self.exp.append("text")
+                                    .style("text-anchor", "middle")
+                                    .attr("x", self.textX)
+                                    .attr("y", "80%")
+                                    .attr("id", "exp-text")
+                                    .text("EXPORT")
+                                    .style("font-size", "4vw")
+                                    .style("font-weight", "bold");
+
+                                self.exp.on("mouseover", function() {
+                                    self.svg.select("#exp-rect")
+                                        .transition()
+                                        .duration(100)
+                                        .ease("cubic")
+                                        .style("fill", "#81BEF7")
+                                        .style("stroke-opacity", 0.4);
+                                    document.body.style.cursor = "pointer";
+                                });
+
+                                self.exp.on("mouseout", function() {
+                                    self.svg.select("#exp-rect")
+                                        .transition()
+                                        .duration(100)
+                                        .ease("cubic")
+                                        .style("fill", "#EFF8FB")
+                                        .style("stroke-opacity", 1.0);
+                                    document.body.style.cursor = "default";
+                                });
+
+                                self.exp.on("click", function() {
+
+                                    var name = prompt('What would you like to call this file? (no need to add any extensions!)');
+                                    if (!!name) {
+                                        download((name + '.csv'), ConvertToCSV(self.output));
                                     };
-                                    str += header + '\r\n';
 
-                                    for (var i = 0; i < array.length; i++) { //append values
-                                        var line = '';
-                                        for (var index in array[i]) {
-                                            if (line != '') {
-                                                line += ','
-                                            };
-                                            if (index == "time") {
-                                                line += self.timeFormat(array[i][index]);
-                                            } else {
-                                                line += array[i][index];
-                                            };
+                                    function ConvertToCSV(objArray) {
+                                        var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+                                        var str = '';
+
+                                        var header = ''; //append header
+                                        for (var index in array[0]) {
+                                            header += index + ',';
+                                        };
+                                        str += header + '\r\n';
+
+                                        for (var i = 0; i < array.length; i++) { //append values
+                                            var line = '';
+                                            for (var index in array[i]) {
+                                                if (line != '') {
+                                                    line += ','
+                                                };
+                                                if (index == "time") {
+                                                    line += self.timeFormat(array[i][index]);
+                                                } else {
+                                                    line += array[i][index];
+                                                };
+                                            }
+                                            str += line + '\r\n';
                                         }
-                                        str += line + '\r\n';
-                                    }
-                                    return str;
-                                };
-
-                                function download(filename, text) {
-                                    var pom = document.createElement('a');
-                                    pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-                                    pom.setAttribute('download', filename);
-
-                                    if (document.createEvent) {
-                                        var event = document.createEvent('MouseEvents');
-                                        event.initEvent('click', true, true);
-                                        pom.dispatchEvent(event);
-                                    } else {
-                                        pom.click();
+                                        return str;
                                     };
-                                };
-                            });
 
-                            self.startApp();
-                        })
+                                    function download(filename, text) {
+                                        var pom = document.createElement('a');
+                                        pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                                        pom.setAttribute('download', filename);
+
+                                        if (document.createEvent) {
+                                            var event = document.createEvent('MouseEvents');
+                                            event.initEvent('click', true, true);
+                                            pom.dispatchEvent(event);
+                                        } else {
+                                            pom.click();
+                                        };
+                                    };
+                                });
+
+                                self.startApp();
+                            })
+                        }
                     });
                 };
 
@@ -481,7 +490,7 @@
                     self.width = self.elem.offsetWidth;
                     self.height = self.elem.offsetHeight;
 
-                    self.x.range([self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                    self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                     self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
 
 
@@ -490,7 +499,7 @@
 
                         self.yChart = self.svg.append("g")
                             .attr("class", "y axis")
-                            .attr("transform", "translate(" + self.padding * self.width + ",0)")
+                            .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                             .call(self.yAxis);
 
                         self.xChart = self.svg.append("g")
@@ -499,7 +508,7 @@
                             .call(self.xAxis);
                     };
 
-                    self.path.transition().attr("d", self.line);
+                    self.path.transition().duration(100).attr("d", self.line);
                 }, true);
             }
         });
