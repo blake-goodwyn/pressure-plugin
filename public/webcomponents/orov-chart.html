@@ -21,7 +21,7 @@
             position: absolute;
             top: 30%;
             transform: translateY(-50%) translateX(-50%);
-            left: 79%;
+            left: 80%;
             font-size: 2.5vmax;
             font-weight: 300;
             text-anchor: end;
@@ -166,7 +166,7 @@
                 self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
-                self.y.domain([0.1, d3.max([5, 1.05 * d3.max(self.curData)])]);
+                self.y.domain([0.01, d3.max([1.5, 1.05 * d3.max(self.curData)])]);
                 self.path.datum(self.output).transition().duration(1000).ease("linear").attr("d", self.line);
 
                 //translate and transition
@@ -266,7 +266,7 @@
 
                     self.start.append("rect")
                         .attr("x", self.buttonX)
-                        .attr("y", "43.5%")
+                        .attr("y", "45%")
                         .attr("height", "20%")
                         .attr("width", "25%")
                         .attr("id", "start-rect")
@@ -277,7 +277,7 @@
                     self.start.append("text")
                         .style("text-anchor", "middle")
                         .attr("x", self.textX)
-                        .attr("y", "56%")
+                        .attr("y", "57.5%")
                         .attr("id", "start-text")
                         .text("START")
                         .style("font-size", "4vw")
@@ -326,7 +326,7 @@
 
                             self.stop.append("rect")
                                 .attr("x", self.buttonX)
-                                .attr("y", "43.5%")
+                                .attr("y", "45%")
                                 .attr("height", "20%")
                                 .attr("width", "25%")
                                 .attr("id", "start-rect")
@@ -337,7 +337,7 @@
                             self.stop.append("text")
                                 .style("text-anchor", "middle")
                                 .attr("x", self.textX)
-                                .attr("y", "56%")
+                                .attr("y", "57.5%")
                                 .attr("id", "start-text")
                                 .text("STOP")
                                 .style("font-size", "4vw")
