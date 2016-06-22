@@ -93,8 +93,6 @@
                     type: Number,
                     value: 400
                 },
-                min: Number,
-                max: Number,
                 inverted: {
                     Type: Boolean,
                     value: false
@@ -141,14 +139,15 @@
                 self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
 
                 //structure current time output
-                self.curTime = parseFloat(Math.floor((Date.now() - self.startTime) / 1000)).toFixed(0);
+                self.curTime = parseFloat(Math.floor((Date.now() - self.startTime) / 1000)).toFixed(1);
                 self.dispTime = self.timeFormat(self.curTime);
 
                 if (!self.prevTime) {
                     self.prevTime = self.curTime;
-                }; //datastream threshold (.toFixed(0) ==> 1Hz)
+                }; //datastream threshold (.toFixed(1) ==> 10Hz max)
 
                 if ((self.prevTime != self.curTime) || (self.output.length == 0)) {
+                    console.log(self.prevTime, self.curTime)
                     self.output.push({
                         "time": self.curTime,
                         "depth": (self.curData[self.curData.length - 1]).toFixed(2),
@@ -182,6 +181,11 @@
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .call(self.xAxis);
 
+                   self.plotter = self.svg.append("path")
+                        .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
+                        .attr("transform","translate(" + self.x(self.curTime) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 16) +")")
+                        .style("fill","red");
+
                 } else { //scale transitions
                     self.svg.select(".x.axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
@@ -196,6 +200,16 @@
                         .duration(1000)
                         .ease("linear")
                         .call(self.yAxis);
+
+                    self.plotter
+                        .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)")
+                        .transition()
+                        .duration(500)
+                        .style("fill","#5B0505")
+                        .transition()
+                        .duration(500)
+                        .style("fill","red");
+            
                 }
             },
 
@@ -486,6 +500,9 @@
                             .attr("class", "x axis")
                             .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                             .call(self.xAxis);
+
+                        self.plotter
+                            .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)");
                     };
 
                     self.path.transition().duration(100).attr("d", self.line);
