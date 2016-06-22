@@ -184,7 +184,7 @@
 
                    self.plotter = self.svg.append("path")
                         .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
-                        .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)")
+                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)")
                         .style("fill","red");
 
                 } else { //scale transitions
@@ -203,13 +203,7 @@
                         .call(self.yAxis);
 
                     self.plotter
-                        .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)")
-                        .transition()
-                        .duration(500)
-                        .style("fill","#5B0505")
-                        .transition()
-                        .duration(500)
-                        .style("fill","red");
+                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
             
                 }
             },
@@ -256,7 +250,7 @@
 
                 self.imgs.enter() //logo
                     .append("svg:image")
-                    .attr("xlink:href", "/components/pressure-plugin/logo.png")
+                    .attr("xlink:href", "components/pressure-plugin/logo.png")
                     .attr("x", "5.5%")
                     .attr("y", "-5%")
                     .attr("width", "30%")
