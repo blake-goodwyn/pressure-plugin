@@ -93,6 +93,7 @@
                     type: Number,
                     value: 400
                 },
+                max: Number,
                 inverted: {
                     Type: Boolean,
                     value: false
@@ -136,13 +137,11 @@
                 }
 
                 //obtain current data
-                self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
+                self.curPt = self.data[self.data.length-1]; //raw datastream
 
                 //structure current time output
                 self.curTime = parseFloat(Math.floor(Date.now() - self.startTime)/1000).toFixed(1);
-                self.dispTime = self.timeFormat(self.curTime);
-
-                console.log(self.curTime);
+                self.dispTime = self.timeFormat(self.curTime, 1);
 
                 if (!self.prevTime) {
                     self.prevTime = self.curTime;
@@ -151,10 +150,11 @@
                 if ((self.prevTime != self.curTime) || (self.output.length == 0)) {
                     self.output.push({
                         "time": self.curTime,
-                        "depth": (self.curData[self.curData.length - 1]).toFixed(2),
+                        "depth": (self.curPt).toFixed(2),
                         "pressure": self.pressure
                     });
                     self.prevTime = self.curTime;
+                    if(self.curPt > self.max){self.max = self.curPt;};
                 };
 
                 //obtain current widget dimensions
@@ -166,7 +166,7 @@
                 self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
-                self.y.domain([0.01, d3.max([1.5, 1.05 * d3.max(self.curData)])]);
+                self.y.domain([0.01, d3.max([1.5, 1.05 * self.max])]);
                 self.path.datum(self.output).transition().duration(100).ease("linear").attr("d", self.line);
 
                 //translate and transition
@@ -219,6 +219,7 @@
                 self.drawFlag = false;
                 self.buttonX = "68%";
                 self.textX = "80.5%";
+                self.max = -Infinity;
 
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
@@ -230,15 +231,16 @@
                     .y(function(d) {
                         return self.y(d["depth"]);
                     })
-                    .interpolate("linear");
+                    .interpolate("basis");
 
-                self.timeFormat = function(time) { //curTime => dispTime
+                self.timeFormat = function(time,dec) { //curTime => dispTime
+                    var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
                     if (time < 60) {
-                        return "00:" + parseFloat((time % 60 < 10) ? ("0" + (time % 60)) : (time % 60)).toFixed(1);
+                        return "00:" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     } else if (self.curTime < 600) {
-                        return "0" + Math.floor(time / 60) + ":" + parseFloat((time % 60 < 10) ? "0" + (time % 60) : (time % 60)).toFixed(1);
+                        return "0" + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }else{
-                        return Math.floor(time / 60) + ":" + parseFloat((time % 60 < 10) ? "0" + (time % 60) : (time % 60)).toFixed(1);
+                        return Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }
                 };
 
@@ -260,7 +262,7 @@
                 self.yAxis = d3.svg.axis().orient("left").scale(self.y);
 
                 //x-axis
-                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(self.timeFormat);
+                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(function(d){return self.timeFormat(d,0);});
 
                 self.path = self.svg.append("g")
                     .attr("clip-path", "url(#clip)")
