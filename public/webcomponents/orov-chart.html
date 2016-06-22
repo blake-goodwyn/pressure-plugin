@@ -139,15 +139,16 @@
                 self.curData = self.data.slice(self.startIdx, self.data.length); //raw datastream
 
                 //structure current time output
-                self.curTime = parseFloat(Math.floor((Date.now() - self.startTime) / 1000)).toFixed(1);
+                self.curTime = parseFloat(Math.floor(Date.now() - self.startTime)/1000).toFixed(1);
                 self.dispTime = self.timeFormat(self.curTime);
+
+                console.log(self.curTime);
 
                 if (!self.prevTime) {
                     self.prevTime = self.curTime;
                 }; //datastream threshold (.toFixed(1) ==> 10Hz max)
 
                 if ((self.prevTime != self.curTime) || (self.output.length == 0)) {
-                    console.log(self.prevTime, self.curTime)
                     self.output.push({
                         "time": self.curTime,
                         "depth": (self.curData[self.curData.length - 1]).toFixed(2),
@@ -166,7 +167,7 @@
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.01, d3.max([1.5, 1.05 * d3.max(self.curData)])]);
-                self.path.datum(self.output).transition().duration(1000).ease("linear").attr("d", self.line);
+                self.path.datum(self.output).transition().duration(100).ease("linear").attr("d", self.line);
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
@@ -183,21 +184,21 @@
 
                    self.plotter = self.svg.append("path")
                         .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
-                        .attr("transform","translate(" + self.x(self.curTime) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 16) +")")
+                        .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)")
                         .style("fill","red");
 
                 } else { //scale transitions
                     self.svg.select(".x.axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .transition()
-                        .duration(1000)
+                        .duration(100)
                         .ease("linear")
                         .call(self.xAxis);
 
                     self.svg.select(".y.axis")
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .transition()
-                        .duration(1000)
+                        .duration(100)
                         .ease("linear")
                         .call(self.yAxis);
 
@@ -239,11 +240,11 @@
 
                 self.timeFormat = function(time) { //curTime => dispTime
                     if (time < 60) {
-                        return "00:" + ((time % 60 < 10) ? ("0" + (time % 60)) : (time % 60));
+                        return "00:" + parseFloat((time % 60 < 10) ? ("0" + (time % 60)) : (time % 60)).toFixed(1);
                     } else if (self.curTime < 600) {
-                        return "0" + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? "0" + (time % 60) : (time % 60));
+                        return "0" + Math.floor(time / 60) + ":" + parseFloat((time % 60 < 10) ? "0" + (time % 60) : (time % 60)).toFixed(1);
                     }else{
-                        return Math.floor(time / 60) + ":" + ((time % 60 < 10) ? "0" + (time % 60) : (time % 60));
+                        return Math.floor(time / 60) + ":" + parseFloat((time % 60 < 10) ? "0" + (time % 60) : (time % 60)).toFixed(1);
                     }
                 };
 

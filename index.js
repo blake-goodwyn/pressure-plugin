@@ -24,7 +24,7 @@ pressureChamber.prototype.start = function start(){
 
 	setInterval(function () {
 		self.deps.cockpit.emit('plugin.engineering.data', self.statusdata);
-	}, 1000);
+	}, 100);
 }
 
 module.exports = function (name, deps) {
