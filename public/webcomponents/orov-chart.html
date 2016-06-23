@@ -9,7 +9,6 @@
             top: 0;
             bottom: 0;
             right: 0;
-            font-family: Georgia, serif;
         }
         
         .line {
@@ -87,7 +86,13 @@
                 startTime: {
                     Type: Number
                 },
+                curTime: {
+                    Type: Number
+                },
                 dispTime: {
+                    Type: Number
+                },
+                prevTime: {
                     Type: Number
                 },
                 type: {
@@ -104,6 +109,7 @@
                     value: 400
                 },
                 max: Number,
+                rate: Number,
                 inverted: {
                     Type: Boolean,
                     value: false
@@ -122,7 +128,6 @@
                 });
             },
             dataChanged: function(val) {
-                if (!this.data) this.data = [];
 
                 if (/^-?[0-9]+$/.test(val)) {
                     this.value = val;
@@ -133,39 +138,31 @@
                 this.pressure = parseFloat((val * 1000 * 9.8 * 1.45e-4)).toFixed(2);
                 //pressure conversion (Depth*Density*Gravity*[psi/Pa])
 
-                this.data.push(val);
+                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(1);
 
-                if (this.drawFlag) {
-                    this.draw();
+                if (this.curTime >= 0 && !this.prevTime) {
+                    this.prevTime = this.curTime;
                 };
+
+                if ((((Math.floor((this.curTime - this.prevTime)*10)/10) >= (1/this.rate)) || this.output.length == 0) && this.drawFlag) {
+                    this.draw();
+                    this.prevTime = this.curTime;
+                }; //datastream threshold ( >= 0.2 ==> 5Hz)
             },
 
             draw: function() {
+                
                 var self = this;
-                if (!this.data) {
-                    return;
-                }
-
-                //obtain current data
-                self.curPt = self.data[self.data.length-1]; //raw datastream
 
                 //structure current time output
-                self.curTime = parseFloat(Math.floor(Date.now() - self.startTime)/1000).toFixed(1);
                 self.dispTime = self.timeFormat(self.curTime, 1);
 
-                if (!self.prevTime) {
-                    self.prevTime = self.curTime;
-                }; //datastream threshold (.toFixed(1) ==> 10Hz max)
-
-                if ((self.curTime != self.prevTime) || (self.output.length == 0)) {
-                    self.output.push({
-                        "time": self.curTime,
-                        "depth": (self.curPt).toFixed(2),
-                        "pressure": self.pressure
-                    });
-                    self.prevTime = self.curTime;
-                    if(self.curPt > self.max){self.max = self.curPt;};
-                };
+                self.output.push({
+                    "time": self.curTime,
+                    "depth": self.value,
+                    "pressure": self.pressure
+                });
+                if(self.value > self.max){self.max = self.value;};
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
@@ -177,7 +174,7 @@
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.01, d3.max([1.5, 1.05 * self.max])]);
-                self.path.datum(self.output).transition().duration(1000*self.logRate).ease("linear").attr("d", self.line);
+                self.path.datum(self.output).transition().duration(1000*(1/self.rate)).ease("linear").attr("d", self.line);
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
@@ -185,12 +182,12 @@
                     self.xChart = self.svg.append("g") //x axis
                         .attr("class", "x axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
-                        .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height)));
+                        .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height))); //vert gridlines
                         
                     self.yChart = self.svg.append("g")  //y axis
                         .attr("class", "y axis")
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
-                        .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
+                        .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width))); //horiz gridlines
 
                     self.plotter = self.svg.append("path")  //plotter arrow
                         .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
@@ -201,28 +198,23 @@
                     self.svg.select(".x.axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .transition()
-                        .duration(1000*self.logRate)
+                        .duration(1000*(1/self.rate))
                         .ease("linear")
                         .call(self.xAxis);
 
                     self.svg.select(".y.axis")
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .transition()
-                        .duration(1000*self.logRate)
+                        .duration(1000*(1/self.rate))
                         .ease("linear")
                         .call(self.yAxis);
 
                     self.plotter
                         .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
-
-                    //This is where you will update the gridlines
-            
                 }
             },
 
             ready: function() {
-
-                if (!this.data) this.data = [];
 
                 this.elem = this.$.chart;
                 var self = this;
@@ -232,7 +224,7 @@
                 self.buttonX = "68%";
                 self.textX = "80.5%";
                 self.max = -Infinity;
-                self.logRate = 0.2;
+                self.rate = 0.5; //Hz
 
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
@@ -244,7 +236,7 @@
                     .y(function(d) {
                         return self.y(d["depth"]);
                     })
-                    .interpolate("basis");
+                    .interpolate( (self.rate > 3) ? "basis" : "linear");
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
@@ -271,6 +263,7 @@
                     .attr("width", "30%")
                     .attr("height", "30%");
 
+
                 //y-axis
                 self.yAxis = d3.svg.axis().orient("left").scale(self.y)
                                 .outerTickSize(0);
@@ -289,6 +282,7 @@
 
                 /*Initialize button stuff here*/
                 self.startApp = function() {
+
                     self.start = self.svg.append("g").attr("id", "start");
 
                     self.start.append("rect")
@@ -346,8 +340,10 @@
                             };
                             self.output = [];
                             self.startTime = Date.now();
-                            self.startIdx = self.data.length-1;
+                            self.prevTime = null;
                             self.drawFlag = true;
+
+                            console.log(self.output);
 
                             self.stop = self.svg.append("g").attr("id", "stop");
 
@@ -515,10 +511,10 @@
                             .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
 
                         self.plotter
-                            .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)");
+                            .attr("transform","translate(" +(self.x(self.output[self.output.length-1]["time"]) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
                     };
 
-                    self.path.transition().duration(1000*self.logRate).attr("d", self.line);
+                    self.path.transition().duration(1000*(1/self.rate)).attr("d", self.line);
                 }, true);
             }
         });
