@@ -172,20 +172,22 @@
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
 
-                    self.yChart = self.svg.append("g")
+                    self.yChart = self.svg.append("g")  //y axis
                         .attr("class", "y axis")
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .call(self.yAxis);
 
-                    self.xChart = self.svg.append("g")
+                    self.xChart = self.svg.append("g") //x axis
                         .attr("class", "x axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .call(self.xAxis);
 
-                   self.plotter = self.svg.append("path")
+                   self.plotter = self.svg.append("path")  //plotter arrow
                         .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
                         .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)")
                         .style("fill","red");
+
+                    //This is where you will insert the gridlines
 
                 } else { //scale transitions
                     self.svg.select(".x.axis")
@@ -204,6 +206,8 @@
 
                     self.plotter
                         .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
+
+                    //This is where you will update the gridlines
             
                 }
             },
