@@ -140,6 +140,11 @@
 
                 this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(1);
 
+                //structure current time output
+                if (!!this.startTime){
+                    this.dispTime = this.timeFormat(this.curTime, 1);
+                };
+
                 if (this.curTime >= 0 && !this.prevTime) {
                     this.prevTime = this.curTime;
                 };
@@ -153,9 +158,6 @@
             draw: function() {
                 
                 var self = this;
-
-                //structure current time output
-                self.dispTime = self.timeFormat(self.curTime, 1);
 
                 self.output.push({
                     "time": self.curTime,
@@ -514,7 +516,7 @@
                             .attr("transform","translate(" +(self.x(self.output[self.output.length-1]["time"]) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
                     };
 
-                    self.path.transition().duration(1000*(1/self.rate)).attr("d", self.line);
+                    self.path.attr("d", self.line);
                 }, true);
             }
         });
