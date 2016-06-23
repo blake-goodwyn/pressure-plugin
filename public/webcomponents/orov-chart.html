@@ -9,6 +9,7 @@
             top: 0;
             bottom: 0;
             right: 0;
+            font-family: Georgia, serif;
         }
         
         .line {
@@ -32,9 +33,19 @@
             padding-right:1.25vw;
         }
 
+        .axis path{
+            fill: none;
+            stroke: black;
+        }
+
         .tick text {
             font-size: 1vw;
             fill: #2d2d2a;
+        }
+
+        .axis line{
+            opacity: 0.2;
+            stroke: black;
         }
         
         .domain {
@@ -86,7 +97,6 @@
                 tick: {
                     Type: Number,
                     value: 40,
-                    observer: 'tickChanged'
                 },
                 width: Number,
                 height: {
@@ -147,7 +157,7 @@
                     self.prevTime = self.curTime;
                 }; //datastream threshold (.toFixed(1) ==> 10Hz max)
 
-                if ((self.prevTime != self.curTime) || (self.output.length == 0)) {
+                if ((self.curTime != self.prevTime) || (self.output.length == 0)) {
                     self.output.push({
                         "time": self.curTime,
                         "depth": (self.curPt).toFixed(2),
@@ -167,40 +177,38 @@
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.01, d3.max([1.5, 1.05 * self.max])]);
-                self.path.datum(self.output).transition().duration(100).ease("linear").attr("d", self.line);
+                self.path.datum(self.output).transition().duration(1000*self.logRate).ease("linear").attr("d", self.line);
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
 
-                    self.yChart = self.svg.append("g")  //y axis
-                        .attr("class", "y axis")
-                        .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
-                        .call(self.yAxis);
-
                     self.xChart = self.svg.append("g") //x axis
                         .attr("class", "x axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
-                        .call(self.xAxis);
+                        .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height)));
+                        
+                    self.yChart = self.svg.append("g")  //y axis
+                        .attr("class", "y axis")
+                        .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
+                        .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
 
-                   self.plotter = self.svg.append("path")  //plotter arrow
+                    self.plotter = self.svg.append("path")  //plotter arrow
                         .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
                         .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)")
                         .style("fill","red");
-
-                    //This is where you will insert the gridlines
 
                 } else { //scale transitions
                     self.svg.select(".x.axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .transition()
-                        .duration(100)
+                        .duration(1000*self.logRate)
                         .ease("linear")
                         .call(self.xAxis);
 
                     self.svg.select(".y.axis")
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .transition()
-                        .duration(100)
+                        .duration(1000*self.logRate)
                         .ease("linear")
                         .call(self.yAxis);
 
@@ -224,6 +232,7 @@
                 self.buttonX = "68%";
                 self.textX = "80.5%";
                 self.max = -Infinity;
+                self.logRate = 0.2;
 
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
@@ -263,10 +272,13 @@
                     .attr("height", "30%");
 
                 //y-axis
-                self.yAxis = d3.svg.axis().orient("left").scale(self.y);
+                self.yAxis = d3.svg.axis().orient("left").scale(self.y)
+                                .outerTickSize(0);
 
                 //x-axis
-                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x).tickFormat(function(d){return self.timeFormat(d,0);});
+                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x)
+                                .tickFormat(function(d){return self.timeFormat(d,0);})
+                                .outerTickSize(0);
 
                 self.path = self.svg.append("g")
                     .attr("clip-path", "url(#clip)")
@@ -492,21 +504,21 @@
                     if ((!!self.yChart) && (!!self.xChart)) {
                         self.svg.selectAll(".axis").remove();
 
-                        self.yChart = self.svg.append("g")
-                            .attr("class", "y axis")
-                            .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
-                            .call(self.yAxis);
-
                         self.xChart = self.svg.append("g")
                             .attr("class", "x axis")
                             .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
-                            .call(self.xAxis);
+                            .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height)));
+                        
+                        self.yChart = self.svg.append("g")
+                            .attr("class", "y axis")
+                            .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
+                            .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
 
                         self.plotter
                             .attr("transform","translate(" +(self.x(self.curTime) - 12) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 24) +")scale(0.75)");
                     };
 
-                    self.path.transition().duration(100).attr("d", self.line);
+                    self.path.transition().duration(1000*self.logRate).attr("d", self.line);
                 }, true);
             }
         });
