@@ -108,14 +108,14 @@
                     type: Number,
                     value: 400
                 },
+                padding: Number,
                 max: Number,
                 rate: Number,
                 inverted: {
                     Type: Boolean,
                     value: false
                 },
-                data: Array,
-                output: Object,
+                output: Array,
             },
             behaviors: [namespace('behaviors').oROVStandard],
             registerEmitterHanlders: function(emitter) {
@@ -141,7 +141,7 @@
                 this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(1);
 
                 //structure current time output
-                if (!!this.startTime){
+                if (!!this.startTime && this.drawFlag){
                     this.dispTime = this.timeFormat(this.curTime, 1);
                 };
 
@@ -149,10 +149,10 @@
                     this.prevTime = this.curTime;
                 };
 
-                if ((((Math.floor((this.curTime - this.prevTime)*10)/10) >= (1/this.rate)) || this.output.length == 0) && this.drawFlag) {
+                if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10)/10) >= (1/this.rate))) {
                     this.draw();
                     this.prevTime = this.curTime;
-                }; //datastream threshold ( >= 0.2 ==> 5Hz)
+                }; //datastream threshold {(1/this.rate) ==> Variable data rate [Hz]}
             },
 
             draw: function() {
@@ -164,12 +164,14 @@
                     "depth": self.value,
                     "pressure": self.pressure
                 });
+
+                console.log(self.output.length);
+                
                 if(self.value > self.max){self.max = self.value;};
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
                 self.height = self.elem.offsetHeight;
-                self.padding = 0.1;
 
                 //update axes and path
                 self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
@@ -226,7 +228,8 @@
                 self.buttonX = "68%";
                 self.textX = "80.5%";
                 self.max = -Infinity;
-                self.rate = 0.5; //Hz
+                self.rate = 5; //Hz
+                self.padding = 0.1;
 
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
@@ -340,12 +343,12 @@
                             if (!!self.exp) {
                                 self.exp.remove();
                             };
-                            self.output = [];
                             self.startTime = Date.now();
+                            self.output = [{"time":0,
+                                            "depth":self.value,
+                                            "pressure":self.pressure}];
                             self.prevTime = null;
                             self.drawFlag = true;
-
-                            console.log(self.output);
 
                             self.stop = self.svg.append("g").attr("id", "stop");
 
@@ -517,6 +520,7 @@
                     };
 
                     self.path.attr("d", self.line);
+                    
                 }, true);
             }
         });
