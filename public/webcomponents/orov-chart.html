@@ -46,23 +46,6 @@
             opacity: 0.2;
             stroke: black;
         }
-
-        .axis .halo {
-            fill: none;
-            stroke: #ddd;
-            stroke-width: 8px;
-            stroke-linecap: round;
-        }
-
-        .dropdown{
-            position: absolute;
-            top: 15%;
-            transform: translateY(-50%) translateX(-50%);
-            left: 80%;
-            font-size: 1.5vmax;
-            font-weight: 300;
-            text-anchor: end;
-        }
         
         .domain {
             fill: #C0C0C0;
@@ -71,10 +54,7 @@
     <template>
 		<div class="content-container">
 			<content>
-            <div id="chart">
-            </div>
-            <div id="extras">
-                <table class="table">
+			<table class="table">
                 <tr>
                     <td class="label">Depth:</td>
                     <td>{{value}} m</td>
@@ -87,7 +67,8 @@
                     <td class="label">Time:</td>
                     <td>{{dispTime}}</td>
                 </tr>
-                </table>
+            </table>
+            <div id="chart">
             </div>
 			</content>
 		</div>
@@ -241,8 +222,8 @@
 
                 this.elem = this.$.chart;
                 var self = this;
-                self.width = self.elem.offsetWidth;
-                self.height = self.elem.offsetHeight;
+                self.width = self.$.chart.clientWidth;
+                self.height = self.$.chart.clientHeight;
                 self.drawFlag = false;
                 self.buttonX = "68%";
                 self.textX = "80.5%";
@@ -303,9 +284,6 @@
                     .attr("clip-path", "url(#clip)")
                     .append("path")
                     .attr("class", "line");
-
-               //Insert rate control here
-
 
                 /*Initialize button stuff here*/
                 self.startApp = function() {
