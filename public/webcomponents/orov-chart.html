@@ -46,6 +46,23 @@
             opacity: 0.2;
             stroke: black;
         }
+
+        .axis .halo {
+            fill: none;
+            stroke: #ddd;
+            stroke-width: 8px;
+            stroke-linecap: round;
+        }
+
+        .dropdown{
+            position: absolute;
+            top: 15%;
+            transform: translateY(-50%) translateX(-50%);
+            left: 80%;
+            font-size: 1.5vmax;
+            font-weight: 300;
+            text-anchor: end;
+        }
         
         .domain {
             fill: #C0C0C0;
@@ -54,7 +71,10 @@
     <template>
 		<div class="content-container">
 			<content>
-			<table class="table">
+            <div id="chart">
+            </div>
+            <div id="extras">
+                <table class="table">
                 <tr>
                     <td class="label">Depth:</td>
                     <td>{{value}} m</td>
@@ -67,8 +87,7 @@
                     <td class="label">Time:</td>
                     <td>{{dispTime}}</td>
                 </tr>
-            </table>
-            <div id="chart">
+                </table>
             </div>
 			</content>
 		</div>
@@ -115,7 +134,10 @@
                     Type: Boolean,
                     value: false
                 },
-                output: Array,
+                //output: Array,
+                pressureArray: Array,
+                depthArray: Array,
+                timeArray: Array,
             },
             behaviors: [namespace('behaviors').oROVStandard],
             registerEmitterHanlders: function(emitter) {
@@ -138,18 +160,19 @@
                 this.pressure = parseFloat((val * 1000 * 9.8 * 1.45e-4)).toFixed(2);
                 //pressure conversion (Depth*Density*Gravity*[psi/Pa])
 
-                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(1);
+                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(2);
 
                 //structure current time output
                 if (!!this.startTime && this.drawFlag){
                     this.dispTime = this.timeFormat(this.curTime, 1);
                 };
 
-                if (this.curTime >= 0 && !this.prevTime) {
+                if (!this.prevTime) {
                     this.prevTime = this.curTime;
                 };
 
-                if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10)/10) >= (1/this.rate))) {
+                if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
+                    console.log(Math.floor((this.curTime - this.prevTime)*10000)/10000);
                     this.draw();
                     this.prevTime = this.curTime;
                 }; //datastream threshold {(1/this.rate) ==> Variable data rate [Hz]}
@@ -159,13 +182,9 @@
                 
                 var self = this;
 
-                self.output.push({
-                    "time": self.curTime,
-                    "depth": self.value,
-                    "pressure": self.pressure
-                });
-
-                console.log(self.output.length);
+                self.timeArray.push(self.curTime);
+                self.depthArray.push(self.value);
+                self.pressureArray.push(self.pressure);
                 
                 if(self.value > self.max){self.max = self.value;};
 
@@ -178,7 +197,7 @@
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.01, d3.max([1.5, 1.05 * self.max])]);
-                self.path.datum(self.output).transition().duration(1000*(1/self.rate)).ease("linear").attr("d", self.line);
+                self.path.transition().duration(1000*(1/self.rate)).ease("linear").attr("d", self.line(self.timeArray,self.depthArray));
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
@@ -195,7 +214,7 @@
 
                     self.plotter = self.svg.append("path")  //plotter arrow
                         .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
-                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)")
+                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.depthArray[self.depthArray.length-1]) - 12) +")scale(0.375)")
                         .style("fill","red");
 
                 } else { //scale transitions
@@ -214,7 +233,7 @@
                         .call(self.yAxis);
 
                     self.plotter
-                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
+                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.depthArray[self.depthArray.length-1]) - 12) +")scale(0.375)");
                 }
             },
 
@@ -222,26 +241,28 @@
 
                 this.elem = this.$.chart;
                 var self = this;
-                self.width = self.$.chart.clientWidth;
-                self.height = self.$.chart.clientHeight;
+                self.width = self.elem.offsetWidth;
+                self.height = self.elem.offsetHeight;
                 self.drawFlag = false;
                 self.buttonX = "68%";
                 self.textX = "80.5%";
-                self.max = -Infinity;
-                self.rate = 5; //Hz
+                self.rate = 10; //Hz
                 self.padding = 0.1;
 
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
 
-                self.line = d3.svg.line()
-                    .x(function(d) {
-                        return self.x(d["time"]);
-                    })
-                    .y(function(d) {
-                        return self.y(d["depth"]);
-                    })
-                    .interpolate( (self.rate > 3) ? "basis" : "linear");
+                self.line = function(time,depth){
+                    var str = '';
+                    for(var i = 0; i < time.length; i++){
+                        if (i == 0){
+                            str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
+                        }else{
+                            str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
+                        }
+                    };;
+                    return str;
+                };
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
@@ -281,9 +302,10 @@
                 self.path = self.svg.append("g")
                     .attr("clip-path", "url(#clip)")
                     .append("path")
-                    .attr("class", "line")
-                    .datum([])
-                    .attr("d", self.line);
+                    .attr("class", "line");
+
+               //Insert rate control here
+
 
                 /*Initialize button stuff here*/
                 self.startApp = function() {
@@ -329,7 +351,7 @@
                         document.body.style.cursor = "default";
                     });
 
-                    if(!!self.output && self.output.length > 0){ self.holdup = true;}
+                    if(!!self.timeArray && self.timeArray.length > 0){ self.holdup = true;}
                     else{self.holdup = false;}
 
                     self.start.on("click", function() {
@@ -344,9 +366,10 @@
                                 self.exp.remove();
                             };
                             self.startTime = Date.now();
-                            self.output = [{"time":0,
-                                            "depth":self.value,
-                                            "pressure":self.pressure}];
+                            self.timeArray = ["0"];
+                            self.depthArray = [self.value];
+                            self.pressureArray = [self.pressure];
+                            self.max = -Infinity;
                             self.prevTime = null;
                             self.drawFlag = true;
 
@@ -394,6 +417,7 @@
                             self.stop.on("click", function() {
                                 self.stop.remove();
                                 self.drawFlag = false;
+                                self.path.attr("d", self.line(self.timeArray,self.depthArray));
 
                                 //Append export button
                                 self.exp = self.svg.append("g").attr("id", "export");
@@ -441,31 +465,19 @@
 
                                     var name = prompt('What would you like to call this file? (no need to add any extensions!)');
                                     if (!!name) {
-                                        download((name + '.csv'), ConvertToCSV(self.output));
+                                        download((name + '.csv'), CSV());
                                     };
 
-                                    function ConvertToCSV(objArray) {
-                                        var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+                                    function CSV() {
                                         var str = '';
 
-                                        var header = ''; //append header
-                                        for (var index in array[0]) {
-                                            header += index + ',';
-                                        };
-                                        str += header + '\r\n';
+                                        str += 'time(s),depth,pressure\r\n';
 
-                                        for (var i = 0; i < array.length; i++) { //append values
+                                        for (var i = 0; i < self.timeArray.length; i++) { //append values
                                             var line = '';
-                                            for (var index in array[i]) {
-                                                if (line != '') {
-                                                    line += ','
-                                                };
-                                                if (index == "time") {
-                                                    line += self.timeFormat(array[i][index],1);
-                                                } else {
-                                                    line += array[i][index];
-                                                };
-                                            }
+                                            line += self.timeArray[i] + ",";  //time value in seconds
+                                            line += self.depthArray[i] + ",";  //depth value in meters
+                                            line += self.pressureArray[i] + ",";  //pressure value in psi
                                             str += line + '\r\n';
                                         }
                                         return str;
@@ -516,10 +528,10 @@
                             .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
 
                         self.plotter
-                            .attr("transform","translate(" +(self.x(self.output[self.output.length-1]["time"]) - 6) + "," + (self.y(self.output[self.output.length-1]["depth"]) - 12) +")scale(0.375)");
+                            .attr("transform","translate(" +(self.x(self.timeArray[self.timeArray.length-1]) - 6) + "," + (self.y(self.depthArray[self.depthArray.length-1]) - 12) +")scale(0.375)");
                     };
 
-                    self.path.attr("d", self.line);
+                    self.path.attr("d", self.line(self.timeArray,self.depthArray));
                     
                 }, true);
             }
