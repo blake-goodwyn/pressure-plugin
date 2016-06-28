@@ -170,7 +170,6 @@
                 var self = this;
 
                 if (self.value == self.prevVal){  //run-length encoding (remove redundant values)
-                    console.log("redundancy")
                     this.redundancy++;
                     self.timeArray.pop();
                     self.depthArray.pop()
@@ -246,7 +245,8 @@
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
 
-                self.line = function(time,depth){
+                //Linear plotting
+               /* self.line = function(time,depth){
                     var str = '';
                     for(var i = 0; i < time.length; i++){
                         if (i == 0){
@@ -256,7 +256,21 @@
                         }
                     };;
                     return str;
-                };
+                };*/
+
+                //Basis Interpolation Plotting
+                self.line = function(time,depth){
+                    var objArray = [];
+                    for(var i = 0; i < time.length; i++){
+                        objArray.push({"x":time[i],"y":depth[i]})
+                    };
+                    return self.interpolater(objArray);
+                }
+
+                self.interpolater = d3.svg.line()
+                        .x(function(d){return self.x(d.x);})
+                        .y(function(d){return self.y(d.y)})
+                        .interpolate("basis");
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
