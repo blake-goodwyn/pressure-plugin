@@ -166,8 +166,6 @@
                 self.timeArray.push(self.curTime);
                 self.depthArray.push(self.value);
                 self.pressureArray.push(self.pressure);
-                
-                if(self.value > self.max){self.max = self.value;};
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
@@ -177,7 +175,7 @@
                 self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                 self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
-                self.y.domain([0.01, d3.max([1.5, 1.05 * self.max])]);
+                self.y.domain([0.01, d3.max([1.5, 1.05 * d3.max(self.depthArray)])]);
                 self.path.transition().duration(1000*(1/self.rate)).ease("linear").attr("d", self.line(self.timeArray,self.depthArray));
 
                 //translate and transition
@@ -227,7 +225,7 @@
                 self.drawFlag = false;
                 self.buttonX = "68%";
                 self.textX = "80.5%";
-                self.rate = 10; //Hz
+                self.rate = 5; //Hz
                 self.padding = 0.1;
 
                 self.x = d3.scale.linear();
@@ -249,7 +247,7 @@
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
                     if (time < 60) {
                         return "00:" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
-                    } else if (self.curTime < 600) {
+                    } else if (time < 600) {
                         return "0" + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }else{
                         return Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
