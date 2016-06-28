@@ -95,6 +95,7 @@
                 prevTime: {
                     Type: Number
                 },
+                prevVal: Number,
                 type: {
                     Type: String,
                     notify: true
@@ -115,10 +116,11 @@
                     Type: Boolean,
                     value: false
                 },
-                //output: Array,
                 pressureArray: Array,
                 depthArray: Array,
                 timeArray: Array,
+                redundancy: Number,
+                points: Number,
             },
             behaviors: [namespace('behaviors').oROVStandard],
             registerEmitterHanlders: function(emitter) {
@@ -152,10 +154,14 @@
                     this.prevTime = this.curTime;
                 };
 
+                if(!this.prevVal){
+                    this.prevVal = this.value;
+                }
+
                 if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
-                    console.log(Math.floor((this.curTime - this.prevTime)*10000)/10000);
                     this.draw();
                     this.prevTime = this.curTime;
+                    this.points ++;
                 }; //datastream threshold {(1/this.rate) ==> Variable data rate [Hz]}
             },
 
@@ -163,9 +169,18 @@
                 
                 var self = this;
 
+                if (self.value == self.prevVal){  //run-length encoding (remove redundant values)
+                    console.log("redundancy")
+                    this.redundancy++;
+                    self.timeArray.pop();
+                    self.depthArray.pop()
+                    self.pressureArray.pop();
+                }
+
                 self.timeArray.push(self.curTime);
-                self.depthArray.push(self.value);
+                self.depthArray.push(parseFloat(self.value));
                 self.pressureArray.push(self.pressure);
+                self.prevVal = self.value;
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
@@ -343,9 +358,10 @@
                             };
                             self.startTime = Date.now();
                             self.timeArray = ["0"];
-                            self.depthArray = [self.value];
+                            self.depthArray = [parseFloat(self.value)];
                             self.pressureArray = [self.pressure];
-                            self.max = -Infinity;
+                            self.points = 0;
+                            self.redundancy = 0;
                             self.prevTime = null;
                             self.drawFlag = true;
 
@@ -394,6 +410,9 @@
                                 self.stop.remove();
                                 self.drawFlag = false;
                                 self.path.attr("d", self.line(self.timeArray,self.depthArray));
+                                console.log("Number of Points Instantiated: " + self.points);
+                                console.log("Number of redundancies found: " + self.redundancy);
+                                console.log("Percentage of original => " + (self.points-self.redundancy)/self.points);
 
                                 //Append export button
                                 self.exp = self.svg.append("g").attr("id", "export");
