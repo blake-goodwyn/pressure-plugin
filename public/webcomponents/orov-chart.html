@@ -154,8 +154,8 @@
                     this.prevTime = this.curTime;
                 };
 
-                if(!this.prevVal){
-                    this.prevVal = this.value;
+                if(!this.prevPres){
+                    this.prevPres = this.pressure;
                 }
 
                 if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
@@ -169,7 +169,7 @@
                 
                 var self = this;
 
-                if (self.value == self.prevVal){  //run-length encoding (remove redundant values)
+                if (self.timeArray.length > 1 && parseFloat(self.pressure).toFixed(1) == parseFloat(self.prevPres).toFixed(1)){  //run-length encoding of pressure values to one sig. fig.
                     this.redundancy++;
                     self.timeArray.pop();
                     self.depthArray.pop()
@@ -179,21 +179,22 @@
                 self.timeArray.push(self.curTime);
                 self.depthArray.push(parseFloat(self.value));
                 self.pressureArray.push(self.pressure);
-                self.prevVal = self.value;
+                self.prevPres = self.pressure;
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
                 self.height = self.elem.offsetHeight;
 
                 //update axes and path
-                self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
-                self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.01, d3.max([1.5, 1.05 * d3.max(self.depthArray)])]);
                 self.path.transition().duration(1000*(1/self.rate)).ease("linear").attr("d", self.line(self.timeArray,self.depthArray));
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
+
+                    self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                    self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
 
                     self.xChart = self.svg.append("g") //x axis
                         .attr("class", "x axis")
@@ -245,25 +246,38 @@
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
 
-                //Linear plotting
-               /* self.line = function(time,depth){
-                    var str = '';
-                    for(var i = 0; i < time.length; i++){
-                        if (i == 0){
-                            str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
-                        }else{
-                            str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
-                        }
-                    };;
-                    return str;
-                };*/
-
                 //Basis Interpolation Plotting
                 self.line = function(time,depth){
                     var objArray = [];
+                    var queue = [];
+                    var qL = 100;
+                    var compL = 10;
+                    //active display compression
                     for(var i = 0; i < time.length; i++){
-                        objArray.push({"x":time[i],"y":depth[i]})
+                        if (queue.length < qL){
+                            queue.push(i);
+                        };
+                        if (queue.length >= qL){
+                            for (var j = 0; j < (qL/(compL*2)); j++){
+                                var ptTime = parseFloat(d3.mean(time.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
+                                var ptDepth = parseFloat(d3.mean(depth.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
+                                objArray.push({"x":ptTime,"y":ptDepth});
+                            }
+                            queue = queue.slice(qL/2-1,qL-1);
+                        }
                     };
+                    if (queue.length != 0){
+                        queue.forEach(function(pt){
+                            objArray.push({"x":time[pt],"y":depth[pt]});
+                        });
+                    };
+                    console.log(queue.length);
+
+                    //stable version
+                    /*for(var i = 0; i < time.length; i++){
+                        objArray.push({"x":time[i],"y":depth[i]});
+                    };*/
+
                     return self.interpolater(objArray);
                 }
 
@@ -274,12 +288,13 @@
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
-                    if (time < 60) {
-                        return "00:" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
-                    } else if (time < 600) {
-                        return "0" + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
+                    var hours = Math.floor(time / 3600);
+                    if ((time % 3600) < 60) {
+                        return ((hours > 0) ? (hours + ":") : ("")) + "00:" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
+                    } else if ((time % 3600) < 600) {
+                        return ((hours > 0) ? (hours + ":") : ("")) + "0" + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }else{
-                        return Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
+                        return ((hours > 0) ? (hours + ":") : ("")) + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }
                 };
 
@@ -370,13 +385,14 @@
                             if (!!self.exp) {
                                 self.exp.remove();
                             };
-                            self.startTime = Date.now();
+                            self.startTime = Date.now();  //initialize start characteristics
                             self.timeArray = ["0"];
                             self.depthArray = [parseFloat(self.value)];
                             self.pressureArray = [self.pressure];
                             self.points = 0;
                             self.redundancy = 0;
                             self.prevTime = null;
+                            self.prevPres = null;
                             self.drawFlag = true;
 
                             self.stop = self.svg.append("g").attr("id", "stop");
