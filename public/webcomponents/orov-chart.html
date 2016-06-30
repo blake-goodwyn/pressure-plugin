@@ -152,8 +152,8 @@
                     this.prevTime = this.curTime;
                 };
 
-                if(!this.prevPres){
-                    this.prevPres = this.pressure;
+                if(!this.prevDepth){
+                    this.prevDepth = this.value;
                 }
 
                 if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
@@ -167,8 +167,8 @@
                 
                 var self = this;
 
-                //run-length encoding of pressure values to one sig. fig.
-                if (self.timeArray.length > 1 && parseFloat(self.pressure).toFixed(1) == parseFloat(self.prevPres).toFixed(1)){
+                //run-length encoding of depth values to one sig. fig.
+                if (self.timeArray.length > 1 && parseFloat(self.depth).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)){
                     this.redundancy++;
                     self.timeArray.pop();
                     self.depthArray.pop()
@@ -178,7 +178,7 @@
                 self.timeArray.push(self.curTime);
                 self.depthArray.push(parseFloat(self.value));
                 self.pressureArray.push(self.pressure);
-                self.prevPres = self.pressure;
+                self.prevDepth = self.value;
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
@@ -248,11 +248,12 @@
                 //Basis Interpolation Plotting
                 self.line = function(time,depth){
                     var objArray = [];
+                    var numCompr = 0;
                     if (self.longtermFlag){
                         var queue = [];
-                        var qL = 500;  //queue length (frequency of compression)
-                        var compL = 50;  //number of points in output in full queue
-                        var queuePrct = 1; //how much of the queue is converted
+                        var qL = self.rate*600;  //queue length (frequency of compression)
+                        var compL = self.rate*60;  //number of points in output in full queue
+                        var queuePrct = 1.00; //how much of the queue is processed in a conversion
                         //active display compression
                         for(var i = 0; i < time.length; i++){
                             if (queue.length < qL){
@@ -260,11 +261,12 @@
                             };
                             if (queue.length >= qL){
                                 for (var j = 0; j < queuePrct*(qL/compL); j++){
-                                    var ptTime = parseFloat(d3.mean(time.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
-                                    var ptDepth = parseFloat(d3.mean(depth.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
+                                    var ptTime = parseFloat(d3.median(time.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
+                                    var ptDepth = parseFloat(d3.median(depth.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
                                     objArray.push({"x":ptTime,"y":ptDepth});
                                 }
                                 queue = queue.slice(qL*queuePrct-1,qL);
+                                numCompr++;
                             }
                         };
                         if (queue.length != 0){
@@ -277,6 +279,11 @@
                             objArray.push({"x":time[i],"y":depth[i]});
                         };
                     }
+                    console.log(".----------.");
+                    console.log("Time: " +self.dispTime);
+                    console.log("Compressed queues: " +numCompr);
+                    console.log("# of displayed points: " +objArray.length);
+                    console.log("*----------*")
                     return self.interpolater(objArray);
                 }
 
@@ -447,7 +454,7 @@
                             self.points = 0;
                             self.redundancy = 0;
                             self.prevTime = null;
-                            self.prevPres = null;
+                            self.prevDepth = null;
                             self.drawFlag = true;
 
                             self.stop = self.svg.append("g").attr("id", "stop");
