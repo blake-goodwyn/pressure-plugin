@@ -74,25 +74,25 @@
         Polymer({
             is: 'orov-chart',
             properties: {
-                value: {
+                value: {  //current depth
                     Type: Number
                 },
-                pressure: {
+                pressure: {  //current pressure
                     Type: Number
                 },
-                startTime: {
+                startTime: {  //starting time returned from Date.now()
                     Type: Number
                 },
-                curTime: {
+                curTime: {  //current time (in seconds) from startTime
                     Type: Number
                 },
-                dispTime: {
+                dispTime: {  //string displaying time in stopwatch format 
                     Type: Number
                 },
-                prevTime: {
+                prevTime: {  //last recorded time
                     Type: Number
                 },
-                prevVal: Number,
+                prevDepth: Number,  //last recorded depth
                 type: {
                     Type: String,
                     notify: true
@@ -107,17 +107,15 @@
                     value: 400
                 },
                 padding: Number,
-                max: Number,
                 rate: Number,
                 inverted: {
                     Type: Boolean,
                     value: false
                 },
-                pressureArray: Array,
                 depthArray: Array,
                 timeArray: Array,
-                redundancy: Number,
-                points: Number,
+                redundancy: Number,  //only for dev
+                points: Number,  //only for dev
                 longtermFlag: Boolean,
             },
             behaviors: [namespace('behaviors').oROVStandard],
@@ -132,32 +130,31 @@
             },
             dataChanged: function(val) {
 
-                if (/^-?[0-9]+$/.test(val)) {
+                if (/^-?[0-9]+$/.test(val)) {  //formatting depth value
                     this.value = val;
                 } else {
                     this.value = parseFloat(val).toFixed(2);
                 };
 
-                this.pressure = parseFloat((val * 1000 * 9.8 * 1.45e-4)).toFixed(2);
-                //pressure conversion (Depth*Density*Gravity*[psi/Pa])
+                this.pressure = this.pressConvert(val);  //convert to pressure
 
-                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(2);
+                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(2);  //record current time
 
                 //structure current time output
                 if (!!this.startTime && this.drawFlag){
                     this.dispTime = this.timeFormat(this.curTime, 1);
                 };
 
-                if (!this.prevTime) {
+                if (!this.prevTime) {  //define prevTime
                     this.prevTime = this.curTime;
                 };
 
-                if(!this.prevDepth){
+                if(!this.prevDepth){  //define prevDepth
                     this.prevDepth = this.value;
                 }
 
                 if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
-                    this.draw();
+                    this.draw();  //update display
                     this.prevTime = this.curTime;
                     this.points ++;
                 }; //datastream threshold {(1/this.rate) ==> Variable data rate [Hz]}
@@ -167,17 +164,15 @@
                 
                 var self = this;
 
-                //run-length encoding of depth values to one sig. fig.
-                if (self.timeArray.length > 1 && parseFloat(self.depth).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)){
+                //redundancy removal of depth values to one sig. fig.
+                if (self.timeArray.length > 1 && parseFloat(self.value).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)){
                     this.redundancy++;
                     self.timeArray.pop();
-                    self.depthArray.pop()
-                    self.pressureArray.pop();
+                    self.depthArray.pop();
                 }
 
                 self.timeArray.push(self.curTime);
                 self.depthArray.push(parseFloat(self.value));
-                self.pressureArray.push(self.pressure);
                 self.prevDepth = self.value;
 
                 //obtain current widget dimensions
@@ -239,22 +234,25 @@
                 self.drawFlag = false;
                 self.buttonX = "68%";
                 self.textX = "80.5%";
-                self.rate = 10; //Hz
+                self.rate = 5; //Hz
                 self.padding = 0.1;
 
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
 
+                self.pressConvert = function(depth){
+                    return parseFloat((depth * 1000 * 9.8 * 1.45e-4)).toFixed(2);
+                }
+                
                 //Basis Interpolation Plotting
                 self.line = function(time,depth){
                     var objArray = [];
                     var numCompr = 0;
-                    if (self.longtermFlag){
+                    if (self.longtermFlag){ //active display compression
                         var queue = [];
-                        var qL = self.rate*600;  //queue length (frequency of compression)
-                        var compL = self.rate*60;  //number of points in output in full queue
-                        var queuePrct = 1.00; //how much of the queue is processed in a conversion
-                        //active display compression
+                        var qL = 20;  //queue length (frequency of compression)
+                        var compL = 10;  //sample size for output points in full queue; (qL/compL) = # of output points
+                        var queuePrct = 1; //how much of the queue is processed in a conversion
                         for(var i = 0; i < time.length; i++){
                             if (queue.length < qL){
                                 queue.push(i);
@@ -274,23 +272,29 @@
                                 objArray.push({"x":time[pt],"y":depth[pt]});
                             });
                         };
+                        console.log(".----------.");
+                        console.log("Time: " +self.dispTime);
+                        console.log("# of compressed queues: " + numCompr);
+                        console.log("# of displayed points: " + objArray.length);
+                        console.log("*----------*")
+                        return self.interpolater(objArray);
                     }else{
+                        var str = '';
                         for(var i = 0; i < time.length; i++){
-                            objArray.push({"x":time[i],"y":depth[i]});
+                            if (i == 0){
+                                str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
+                            }else{
+                                str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
+                            }
                         };
+                        return str;
                     }
-                    console.log(".----------.");
-                    console.log("Time: " +self.dispTime);
-                    console.log("Compressed queues: " +numCompr);
-                    console.log("# of displayed points: " +objArray.length);
-                    console.log("*----------*")
-                    return self.interpolater(objArray);
                 }
 
                 self.interpolater = d3.svg.line()
                         .x(function(d){return self.x(d.x);})
                         .y(function(d){return self.y(d.y)})
-                        .interpolate("basis");
+                        .interpolate("linear");
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
@@ -450,7 +454,6 @@
                             self.startTime = Date.now();  //initialize start characteristics
                             self.timeArray = ["0"];
                             self.depthArray = [parseFloat(self.value)];
-                            self.pressureArray = [self.pressure];
                             self.points = 0;
                             self.redundancy = 0;
                             self.prevTime = null;
@@ -564,7 +567,7 @@
                                             var line = '';
                                             line += self.timeArray[i] + ",";  //time value in seconds
                                             line += self.depthArray[i] + ",";  //depth value in meters
-                                            line += self.pressureArray[i] + ",";  //pressure value in psi
+                                            line += self.pressConvert(self.depthArray[i]) + ",";  //pressure value in psi
                                             str += line + '\r\n';
                                         }
                                         return str;
