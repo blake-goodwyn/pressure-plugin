@@ -47,9 +47,6 @@
             stroke: black;
         }
         
-        .domain {
-            fill: #C0C0C0;
-        }
     </style>
     <template>
 		<div class="content-container">
@@ -121,6 +118,7 @@
                 timeArray: Array,
                 redundancy: Number,
                 points: Number,
+                longtermFlag: Boolean,
             },
             behaviors: [namespace('behaviors').oROVStandard],
             registerEmitterHanlders: function(emitter) {
@@ -169,7 +167,8 @@
                 
                 var self = this;
 
-                if (self.timeArray.length > 1 && parseFloat(self.pressure).toFixed(1) == parseFloat(self.prevPres).toFixed(1)){  //run-length encoding of pressure values to one sig. fig.
+                //run-length encoding of pressure values to one sig. fig.
+                if (self.timeArray.length > 1 && parseFloat(self.pressure).toFixed(1) == parseFloat(self.prevPres).toFixed(1)){
                     this.redundancy++;
                     self.timeArray.pop();
                     self.depthArray.pop()
@@ -240,7 +239,7 @@
                 self.drawFlag = false;
                 self.buttonX = "68%";
                 self.textX = "80.5%";
-                self.rate = 5; //Hz
+                self.rate = 10; //Hz
                 self.padding = 0.1;
 
                 self.x = d3.scale.linear();
@@ -249,35 +248,35 @@
                 //Basis Interpolation Plotting
                 self.line = function(time,depth){
                     var objArray = [];
-                    var queue = [];
-                    var qL = 100;
-                    var compL = 10;
-                    //active display compression
-                    for(var i = 0; i < time.length; i++){
-                        if (queue.length < qL){
-                            queue.push(i);
-                        };
-                        if (queue.length >= qL){
-                            for (var j = 0; j < (qL/(compL*2)); j++){
-                                var ptTime = parseFloat(d3.mean(time.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
-                                var ptDepth = parseFloat(d3.mean(depth.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
-                                objArray.push({"x":ptTime,"y":ptDepth});
+                    if (self.longtermFlag){
+                        var queue = [];
+                        var qL = 500;  //queue length (frequency of compression)
+                        var compL = 50;  //number of points in output in full queue
+                        var queuePrct = 1; //how much of the queue is converted
+                        //active display compression
+                        for(var i = 0; i < time.length; i++){
+                            if (queue.length < qL){
+                                queue.push(i);
+                            };
+                            if (queue.length >= qL){
+                                for (var j = 0; j < queuePrct*(qL/compL); j++){
+                                    var ptTime = parseFloat(d3.mean(time.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
+                                    var ptDepth = parseFloat(d3.mean(depth.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
+                                    objArray.push({"x":ptTime,"y":ptDepth});
+                                }
+                                queue = queue.slice(qL*queuePrct-1,qL);
                             }
-                            queue = queue.slice(qL/2-1,qL-1);
-                        }
-                    };
-                    if (queue.length != 0){
-                        queue.forEach(function(pt){
-                            objArray.push({"x":time[pt],"y":depth[pt]});
-                        });
-                    };
-                    console.log(queue.length);
-
-                    //stable version
-                    /*for(var i = 0; i < time.length; i++){
-                        objArray.push({"x":time[i],"y":depth[i]});
-                    };*/
-
+                        };
+                        if (queue.length != 0){
+                            queue.forEach(function(pt){
+                                objArray.push({"x":time[pt],"y":depth[pt]});
+                            });
+                        };
+                    }else{
+                        for(var i = 0; i < time.length; i++){
+                            objArray.push({"x":time[i],"y":depth[i]});
+                        };
+                    }
                     return self.interpolater(objArray);
                 }
 
@@ -292,9 +291,9 @@
                     if ((time % 3600) < 60) {
                         return ((hours > 0) ? (hours + ":") : ("")) + "00:" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     } else if ((time % 3600) < 600) {
-                        return ((hours > 0) ? (hours + ":") : ("")) + "0" + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
+                        return ((hours > 0) ? (hours + ":") : ("")) + "0" + Math.floor((time % 3600) / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }else{
-                        return ((hours > 0) ? (hours + ":") : ("")) + Math.floor(time / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
+                        return ((hours > 0) ? (hours + ":") : ("")) + Math.floor((time % 3600) / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }
                 };
 
@@ -312,13 +311,10 @@
                     .attr("width", "30%")
                     .attr("height", "30%");
 
-
-                //y-axis
-                self.yAxis = d3.svg.axis().orient("left").scale(self.y)
+                self.yAxis = d3.svg.axis().orient("left").scale(self.y)  //y-axis
                                 .outerTickSize(0);
 
-                //x-axis
-                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x)
+                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x)  //x-axis
                                 .tickFormat(function(d){return self.timeFormat(d,0);})
                                 .outerTickSize(0);
 
@@ -329,6 +325,8 @@
 
                 /*Initialize button stuff here*/
                 self.startApp = function() {
+
+                    self.longtermFlag = false;
 
                     self.start = self.svg.append("g").attr("id", "start");
 
@@ -371,6 +369,61 @@
                         document.body.style.cursor = "default";
                     });
 
+                    self.compr = self.svg.append("g").attr("id","long-term");
+
+                    self.compr.append("rect")
+                        .attr("x", "69%")
+                        .attr("y", "90%")
+                        .attr("height", "1vmax")
+                        .attr("width", "1vmax")
+                        .attr("id", "compr-rect")
+                        .style("fill", "#EFF8FB")
+                        .style("stroke", "#2d2d2a")
+                        .style("stroke-width", 2);
+
+                    self.compr.append("text")
+                        .style("text-anchor", "start")
+                        .attr("x", "71.25%")
+                        .attr("y", "91.5%")
+                        .attr("id", "compr-text")
+                        .text("Use Long-Term Display Compression?")
+                        .style("font-size", "1vw")
+                        .style("font-weight", "bold");
+
+                    self.svg.select("#compr-rect").on("mouseover", function() {
+                        self.svg.select("#compr-rect")
+                            .transition()
+                            .duration(100)
+                            .ease("cubic")
+                            .style("stroke-opacity", 0.4);
+                        document.body.style.cursor = "pointer";
+                    });
+
+                    self.svg.select("#compr-rect").on("mouseout", function() {
+                        self.svg.select("#compr-rect")
+                            .transition()
+                            .duration(100)
+                            .ease("cubic")
+                            .style("stroke-opacity", 1.0);
+                        document.body.style.cursor = "default";
+                    });
+
+                    self.svg.select("#compr-rect").on("click", function() {
+                        if (!self.longtermFlag){
+                            self.compr.select("#compr-rect")
+                            .transition()
+                            .duration(100)
+                            .style("fill","#FF0000")
+                            self.longtermFlag = true;
+                        }else{
+                            self.compr.select("#compr-rect")
+                            .transition()
+                            .duration(100)
+                            .style("fill","#EFF8FB")
+                            self.longtermFlag = false;
+                        };
+                    });
+
                     if(!!self.timeArray && self.timeArray.length > 0){ self.holdup = true;}
                     else{self.holdup = false;}
 
@@ -382,6 +435,8 @@
                         if (allow){
 
                             self.start.remove();
+                            self.compr.remove();
+                            if(self.longtermFlag){console.log("Long-term compression: ACTIVE")};
                             if (!!self.exp) {
                                 self.exp.remove();
                             };
@@ -440,9 +495,9 @@
                                 self.stop.remove();
                                 self.drawFlag = false;
                                 self.path.attr("d", self.line(self.timeArray,self.depthArray));
-                                console.log("Number of Points Instantiated: " + self.points);
+                                console.log("Number of points instantiated: " + self.points);
                                 console.log("Number of redundancies found: " + self.redundancy);
-                                console.log("Percentage of original => " + (self.points-self.redundancy)/self.points);
+                                console.log("Percentage of original => " + parseFloat((self.points-self.redundancy)*100/self.points).toFixed(2) + "%");
 
                                 //Append export button
                                 self.exp = self.svg.append("g").attr("id", "export");
@@ -537,7 +592,6 @@
 
                     self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                     self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
-
 
                     if ((!!self.yChart) && (!!self.xChart)) {
                         self.svg.selectAll(".axis").remove();
