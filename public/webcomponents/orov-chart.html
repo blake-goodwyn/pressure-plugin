@@ -47,6 +47,12 @@
             stroke: black;
         }
         
+        .int-rect{
+            fill:#EFF8FB;
+            stroke:#2d2d2a;
+            stroke-width:2;
+        }
+
     </style>
     <template>
 		<div class="content-container">
@@ -175,6 +181,8 @@
                 self.depthArray.push(parseFloat(self.value));
                 self.prevDepth = self.value;
 
+                //possible upgrade from local memory to IndexedDB data store
+
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
                 self.height = self.elem.offsetHeight;
@@ -196,7 +204,9 @@
                         .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height))); //vert gridlines
                         
                     self.yChart = self.svg.append("g")  //y axis
-                        .attr("class", "y axis")
+                        .attr("class", "y axis").style("fill", "#EFF8FB")
+                        .style("stroke", "#2d2d2a")
+                        .style("stroke-width", 2);
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width))); //horiz gridlines
 
@@ -246,34 +256,24 @@
                 
                 //Basis Interpolation Plotting
                 self.line = function(time,depth){
+                    var str = '';
                     if (self.longtermFlag){ //active display compression
-                        console.log(time.length);
-                        var queue = [{"x":time[0],"y":depth[0]}];
-                        var qL = 500;  //queue length
-                        var compL = Math.max(1,(time.length-1)/(qL-1));
+                        str += ("M " + self.x(time[0]) + " " + self.y(depth[0]) + " "); //first point
+                        var qL = 500;  //queue length (max # of displayed points)
+                        var compL = Math.max(1,(time.length-1)/(qL-1)); //sampling length
                         for (var i = 1; i < Math.min(time.length-1,qL-1); i++){
-                            queue.push({"x":time[Math.floor(d3.median(d3.range(Math.floor(compL*(i-1)),Math.floor(compL*(i)))))],  //middle time point of selection
-                                        "y":d3.mean(depth.slice(compL*(i-1),compL*i))}); //average depth of selection
-                        }
-                        queue.push({"x":time[time.length-1],"y":depth[depth.length-1]}); //final value
-                        return self.interpolater(queue);
-                    }else{
-                        var str = '';
-                        for(var i = 0; i < time.length; i++){
-                            if (i == 0){
-                                str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
-                            }else{
-                                str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
-                            }
+                            str += "L " + self.x(time[Math.floor(d3.median(d3.range(Math.floor(compL*(i-1)),Math.floor(compL*(i)))))]) + " "; //middle time point of selection 
+                            str += self.y(d3.mean(depth.slice(compL*(i-1),compL*i))) + " "; //average depth of selection
                         };
-                        return str;
-                    }
-                }
-
-                self.interpolater = d3.svg.line()
-                        .x(function(d){return self.x(d.x);})
-                        .y(function(d){return self.y(d.y)})
-                        .interpolate("basis");
+                        str += ("L " + self.x(time[time.length-1]) + " " + self.y(depth[depth.length-1]) + " "); //current point
+                    }else{
+                        for(var i = 0; i < time.length; i++){
+                            if (i == 0){ str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " "); }
+                            else{ str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " "); };
+                        };
+                    };
+                    return str;
+                };
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
@@ -326,9 +326,7 @@
                         .attr("height", "20%")
                         .attr("width", "25%")
                         .attr("id", "start-rect")
-                        .style("fill", "#EFF8FB")
-                        .style("stroke", "#2d2d2a")
-                        .style("stroke-width", 2);
+                        .attr("class","int-rect");
 
                     self.start.append("text")
                         .style("text-anchor", "middle")
@@ -367,9 +365,7 @@
                         .attr("height", "1vmax")
                         .attr("width", "1vmax")
                         .attr("id", "compr-rect")
-                        .style("fill", "#EFF8FB")
-                        .style("stroke", "#2d2d2a")
-                        .style("stroke-width", 2);
+                        .attr("class","int-rect");
 
                     self.compr.append("text")
                         .style("text-anchor", "start")
@@ -423,7 +419,6 @@
                         if (self.holdup){allow = confirm("A dataset already exists. Continue?")};
 
                         if (allow){
-
                             self.start.remove();
                             self.compr.remove();
                             if(self.longtermFlag){console.log("Long-term compression: ACTIVE")}
@@ -448,9 +443,7 @@
                                 .attr("height", "20%")
                                 .attr("width", "25%")
                                 .attr("id", "start-rect")
-                                .style("fill", "#EFF8FB")
-                                .style("stroke", "black")
-                                .style("stroke-width", 2);
+                                .attr("class","int-rect");
 
                             self.stop.append("text")
                                 .style("text-anchor", "middle")
@@ -498,9 +491,7 @@
                                     .attr("height", "20%")
                                     .attr("width", "25%")
                                     .attr("id", "exp-rect")
-                                    .style("fill", "#EFF8FB")
-                                    .style("stroke", "black")
-                                    .style("stroke-width", 2);
+                                    .attr("class","int-rect");
 
                                 self.exp.append("text")
                                     .style("text-anchor", "middle")
