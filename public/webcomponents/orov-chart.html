@@ -246,38 +246,17 @@
                 
                 //Basis Interpolation Plotting
                 self.line = function(time,depth){
-                    var objArray = [];
-                    var numCompr = 0;
                     if (self.longtermFlag){ //active display compression
-                        var queue = [];
-                        var qL = 20;  //queue length (frequency of compression)
-                        var compL = 10;  //sample size for output points in full queue; (qL/compL) = # of output points
-                        var queuePrct = 1; //how much of the queue is processed in a conversion
-                        for(var i = 0; i < time.length; i++){
-                            if (queue.length < qL){
-                                queue.push(i);
-                            };
-                            if (queue.length >= qL){
-                                for (var j = 0; j < queuePrct*(qL/compL); j++){
-                                    var ptTime = parseFloat(d3.median(time.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
-                                    var ptDepth = parseFloat(d3.median(depth.slice(queue[compL*j],queue[compL*j+(compL-1)]))).toFixed(2);
-                                    objArray.push({"x":ptTime,"y":ptDepth});
-                                }
-                                queue = queue.slice(qL*queuePrct-1,qL);
-                                numCompr++;
-                            }
-                        };
-                        if (queue.length != 0){
-                            queue.forEach(function(pt){
-                                objArray.push({"x":time[pt],"y":depth[pt]});
-                            });
-                        };
-                        console.log(".----------.");
-                        console.log("Time: " +self.dispTime);
-                        console.log("# of compressed queues: " + numCompr);
-                        console.log("# of displayed points: " + objArray.length);
-                        console.log("*----------*")
-                        return self.interpolater(objArray);
+                        console.log(time.length);
+                        var queue = [{"x":time[0],"y":depth[0]}];
+                        var qL = 500;  //queue length
+                        var compL = Math.max(1,(time.length-1)/(qL-1));
+                        for (var i = 1; i < Math.min(time.length-1,qL-1); i++){
+                            queue.push({"x":time[Math.floor(d3.median(d3.range(Math.floor(compL*(i-1)),Math.floor(compL*(i)))))],  //middle time point of selection
+                                        "y":d3.mean(depth.slice(compL*(i-1),compL*i))}); //average depth of selection
+                        }
+                        queue.push({"x":time[time.length-1],"y":depth[depth.length-1]}); //final value
+                        return self.interpolater(queue);
                     }else{
                         var str = '';
                         for(var i = 0; i < time.length; i++){
@@ -294,7 +273,7 @@
                 self.interpolater = d3.svg.line()
                         .x(function(d){return self.x(d.x);})
                         .y(function(d){return self.y(d.y)})
-                        .interpolate("linear");
+                        .interpolate("basis");
 
                 self.timeFormat = function(time,dec) { //curTime => dispTime
                     var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
@@ -447,7 +426,8 @@
 
                             self.start.remove();
                             self.compr.remove();
-                            if(self.longtermFlag){console.log("Long-term compression: ACTIVE")};
+                            if(self.longtermFlag){console.log("Long-term compression: ACTIVE")}
+                            else{console.log("Long-term compression: INACTIVE")};
                             if (!!self.exp) {
                                 self.exp.remove();
                             };
