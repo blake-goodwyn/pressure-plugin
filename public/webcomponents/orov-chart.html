@@ -181,7 +181,7 @@
                 self.depthArray.push(parseFloat(self.value));
                 self.prevDepth = self.value;
 
-                //possible upgrade from local memory to IndexedDB data store
+                //possibly upgrade from local memory to IndexedDB data store
 
                 //obtain current widget dimensions
                 self.width = self.elem.offsetWidth;
@@ -204,9 +204,7 @@
                         .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height))); //vert gridlines
                         
                     self.yChart = self.svg.append("g")  //y axis
-                        .attr("class", "y axis").style("fill", "#EFF8FB")
-                        .style("stroke", "#2d2d2a")
-                        .style("stroke-width", 2);
+                        .attr("class", "y axis")
                         .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
                         .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width))); //horiz gridlines
 
@@ -254,15 +252,14 @@
                     return parseFloat((depth * 1000 * 9.8 * 1.45e-4)).toFixed(2);
                 }
                 
-                //Basis Interpolation Plotting
+                //Plotting
                 self.line = function(time,depth){
                     var str = '';
-                    if (self.longtermFlag){ //active display compression
+                    if (self.longtermFlag && (time.length > self.rate*100)){ //active display compression
                         str += ("M " + self.x(time[0]) + " " + self.y(depth[0]) + " "); //first point
-                        var qL = 500;  //queue length (max # of displayed points)
-                        var compL = Math.max(1,(time.length-1)/(qL-1)); //sampling length
-                        for (var i = 1; i < Math.min(time.length-1,qL-1); i++){
-                            str += "L " + self.x(time[Math.floor(d3.median(d3.range(Math.floor(compL*(i-1)),Math.floor(compL*(i)))))]) + " "; //middle time point of selection 
+                        var compL = Math.max(1,(time.length-2)/(self.rate*100-1)); //sampling length
+                        for (var i = 1; i < self.rate*100; i++){
+                            str += "L " + self.x(d3.mean(time.slice(compL*(i-1),compL*i))) + " ";//self.x(time[Math.floor(d3.median(d3.range(Math.floor(compL*(i-1)),Math.floor(compL*(i)))))]) + " "; //middle time point of selection 
                             str += self.y(d3.mean(depth.slice(compL*(i-1),compL*i))) + " "; //average depth of selection
                         };
                         str += ("L " + self.x(time[time.length-1]) + " " + self.y(depth[depth.length-1]) + " "); //current point
@@ -545,16 +542,16 @@
                                     };
 
                                     function download(filename, text) {
-                                        var pom = document.createElement('a');
-                                        pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-                                        pom.setAttribute('download', filename);
+                                        var parcelDonkey = document.createElement('a');
+                                        parcelDonkey.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                                        parcelDonkey.setAttribute('download', filename);
 
                                         if (document.createEvent) {
                                             var event = document.createEvent('MouseEvents');
                                             event.initEvent('click', true, true);
-                                            pom.dispatchEvent(event);
+                                            parcelDonkey.dispatchEvent(event);
                                         } else {
-                                            pom.click();
+                                            parcelDonkey.click();
                                         };
                                     };
                                 });
