@@ -60,7 +60,7 @@
 			<table class="table">
                 <tr>
                     <td class="label">Depth:</td>
-                    <td>{{value}} m</td>
+                    <td>{{depth}} m</td>
                 </tr>
                 <tr>
                     <td class="label">Pressure:</td>
@@ -80,7 +80,7 @@
         Polymer({
             is: 'orov-chart',
             properties: {
-                value: {  //current depth
+                depth: {  //current depth
                     Type: Number
                 },
                 pressure: {  //current pressure
@@ -137,9 +137,9 @@
             dataChanged: function(val) {
 
                 if (/^-?[0-9]+$/.test(val)) {  //formatting depth value
-                    this.value = val;
+                    this.depth = val;
                 } else {
-                    this.value = parseFloat(val).toFixed(2);
+                    this.depth = parseFloat(val).toFixed(2);
                 };
 
                 this.pressure = this.pressConvert(val);  //convert to pressure
@@ -156,7 +156,7 @@
                 };
 
                 if(!this.prevDepth){  //define prevDepth
-                    this.prevDepth = this.value;
+                    this.prevDepth = this.depth;
                 }
 
                 if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
@@ -171,16 +171,15 @@
                 var self = this;
 
                 //redundancy removal of depth values to one sig. fig.
-                if (self.timeArray.length > 1 && parseFloat(self.value).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)){
+                if (self.timeArray.length > 1 && parseFloat(self.depth).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)){
                     this.redundancy++;
                     self.timeArray.pop();
                     self.depthArray.pop();
                 }
 
                 self.timeArray.push(self.curTime);
-                self.depthArray.push(parseFloat(self.value));
-                self.prevDepth = self.value;
-
+                self.depthArray.push(parseFloat(self.depth));
+                self.prevDepth = self.depth;
                 //possibly upgrade from local memory to IndexedDB data store
 
                 //obtain current widget dimensions
@@ -259,11 +258,11 @@
                         str += ("M " + self.x(time[0]) + " " + self.y(depth[0]) + " "); //first point
                         var compL = Math.max(1,(time.length-2)/(self.rate*100-1)); //sampling length
                         for (var i = 1; i < self.rate*100; i++){
-                            str += "L " + self.x(d3.mean(time.slice(compL*(i-1),compL*i))) + " ";//self.x(time[Math.floor(d3.median(d3.range(Math.floor(compL*(i-1)),Math.floor(compL*(i)))))]) + " "; //middle time point of selection 
+                            str += "L " + self.x(d3.mean(time.slice(compL*(i-1),compL*i))) + " "; //average time point of selection 
                             str += self.y(d3.mean(depth.slice(compL*(i-1),compL*i))) + " "; //average depth of selection
                         };
                         str += ("L " + self.x(time[time.length-1]) + " " + self.y(depth[depth.length-1]) + " "); //current point
-                    }else{
+                    }else{ //normal path output
                         for(var i = 0; i < time.length; i++){
                             if (i == 0){ str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " "); }
                             else{ str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " "); };
@@ -310,10 +309,10 @@
                     .append("path")
                     .attr("class", "line");
 
+                self.longtermFlag = false;
+
                 /*Initialize button stuff here*/
                 self.startApp = function() {
-
-                    self.longtermFlag = false;
 
                     self.start = self.svg.append("g").attr("id", "start");
 
@@ -363,6 +362,8 @@
                         .attr("width", "1vmax")
                         .attr("id", "compr-rect")
                         .attr("class","int-rect");
+                        
+                    if(self.longtermFlag){self.svg.select("#compr-rect").style("fill","#FF0000")};
 
                     self.compr.append("text")
                         .style("text-anchor", "start")
@@ -425,7 +426,7 @@
                             };
                             self.startTime = Date.now();  //initialize start characteristics
                             self.timeArray = ["0"];
-                            self.depthArray = [parseFloat(self.value)];
+                            self.depthArray = [parseFloat(self.depth)];
                             self.points = 0;
                             self.redundancy = 0;
                             self.prevTime = null;
