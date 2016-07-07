@@ -80,25 +80,25 @@
         Polymer({
             is: 'orov-chart',
             properties: {
-                depth: {  //current depth
+                depth: { //current depth
                     Type: Number
                 },
-                pressure: {  //current pressure
+                pressure: { //current pressure
                     Type: Number
                 },
-                startTime: {  //starting time returned from Date.now()
+                startTime: { //starting time returned from Date.now()
                     Type: Number
                 },
-                curTime: {  //current time (in seconds) from startTime
+                curTime: { //current time (in seconds) from startTime
                     Type: Number
                 },
-                dispTime: {  //string displaying time in stopwatch format 
+                dispTime: { //string displaying time in stopwatch format 
                     Type: Number
                 },
-                prevTime: {  //last recorded time
+                prevTime: { //last recorded time
                     Type: Number
                 },
-                prevDepth: Number,  //last recorded depth
+                prevDepth: Number, //last recorded depth
                 type: {
                     Type: String,
                     notify: true
@@ -108,10 +108,7 @@
                     value: 40,
                 },
                 width: Number,
-                height: {
-                    type: Number,
-                    value: 400
-                },
+                height: Number,
                 padding: Number,
                 rate: Number,
                 inverted: {
@@ -120,8 +117,8 @@
                 },
                 depthArray: Array,
                 timeArray: Array,
-                redundancy: Number,  //only for dev
-                points: Number,  //only for dev
+                redundancy: Number, //only for dev
+                points: Number, //only for dev
                 longtermFlag: Boolean,
             },
             behaviors: [namespace('behaviors').oROVStandard],
@@ -136,42 +133,42 @@
             },
             dataChanged: function(val) {
 
-                if (/^-?[0-9]+$/.test(val)) {  //formatting depth value
+                if (/^-?[0-9]+$/.test(val)) { //formatting depth value
                     this.depth = val;
                 } else {
                     this.depth = parseFloat(val).toFixed(2);
                 };
 
-                this.pressure = this.pressConvert(val);  //convert to pressure
+                this.pressure = this.pressConvert(val); //convert to pressure
 
-                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime)/1000).toFixed(2);  //record current time
+                this.curTime = parseFloat(Math.floor(Date.now() - this.startTime) / 1000).toFixed(2); //record current time
 
                 //structure current time output
-                if (!!this.startTime && this.drawFlag){
+                if (!!this.startTime && this.drawFlag) {
                     this.dispTime = this.timeFormat(this.curTime, 1);
                 };
 
-                if (!this.prevTime) {  //define prevTime
+                if (!this.prevTime) { //define prevTime
                     this.prevTime = this.curTime;
                 };
 
-                if(!this.prevDepth){  //define prevDepth
+                if (!this.prevDepth) { //define prevDepth
                     this.prevDepth = this.depth;
                 }
 
-                if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime)*10000)/10000) >= (1/this.rate))) {
-                    this.draw();  //update display
+                if (this.drawFlag && ((Math.floor((this.curTime - this.prevTime) * 10000) / 10000) >= (1 / this.rate))) {
+                    this.draw(); //update display
                     this.prevTime = this.curTime;
-                    this.points ++;
+                    this.points++;
                 }; //datastream threshold {(1/this.rate) ==> Variable data rate [Hz]}
             },
 
             draw: function() {
-                
+
                 var self = this;
 
                 //redundancy removal of depth values to one sig. fig.
-                if (self.timeArray.length > 1 && parseFloat(self.depth).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)){
+                if (self.timeArray.length > 1 && parseFloat(self.depth).toFixed(1) == parseFloat(self.prevDepth).toFixed(1)) {
                     this.redundancy++;
                     self.timeArray.pop();
                     self.depthArray.pop();
@@ -183,52 +180,48 @@
                 //possibly upgrade from local memory to IndexedDB data store
 
                 //obtain current widget dimensions
-                self.width = self.elem.offsetWidth;
-                self.height = self.elem.offsetHeight;
+                if (!self.width || (self.width != self.elem.offsetWidth)) {
+                    self.width = self.elem.offsetWidth;
+                };
+                if (!self.height || (self.height != self.elem.offsetHeight)) {
+                    self.height = self.elem.offsetHeight;
+                };
 
                 //update axes and path
                 self.x.domain([0, self.curTime]);
                 self.y.domain([0.01, d3.max([1.5, 1.05 * d3.max(self.depthArray)])]);
-                self.path.transition().duration(1000*(1/self.rate)).ease("linear").attr("d", self.line(self.timeArray,self.depthArray));
+                self.path.transition().duration(1000 * (1 / self.rate)).ease("linear").attr("d", self.line(self.timeArray, self.depthArray));
 
                 //translate and transition
                 if ((!self.yChart) || (!self.xChart)) { //no defined axes
 
-                    self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                    self.x.range([0.5 * self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                     self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
 
                     self.xChart = self.svg.append("g") //x axis
                         .attr("class", "x axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height))); //vert gridlines
-                        
-                    self.yChart = self.svg.append("g")  //y axis
-                        .attr("class", "y axis")
-                        .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
-                        .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width))); //horiz gridlines
 
-                    self.plotter = self.svg.append("path")  //plotter arrow
-                        .attr("d", "M 0 48 L 48 32 L 0 16 L 16 32 z")
-                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.depthArray[self.depthArray.length-1]) - 12) +")scale(0.375)")
-                        .style("fill","red");
+                    self.yChart = self.svg.append("g") //y axis
+                        .attr("class", "y axis")
+                        .attr("transform", "translate(" + 0.5 * self.padding * self.width + ",0)")
+                        .call(self.yAxis.innerTickSize((0.5 * self.padding * self.width) - ((1 - 4 * self.padding) * self.width))); //horiz gridlines
 
                 } else { //scale transitions
                     self.svg.select(".x.axis")
                         .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                         .transition()
-                        .duration(1000*(1/self.rate))
+                        .duration(1000 * (1 / self.rate))
                         .ease("linear")
                         .call(self.xAxis);
 
                     self.svg.select(".y.axis")
-                        .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
+                        .attr("transform", "translate(" + 0.5 * self.padding * self.width + ",0)")
                         .transition()
-                        .duration(1000*(1/self.rate))
+                        .duration(1000 * (1 / self.rate))
                         .ease("linear")
                         .call(self.yAxis);
-
-                    self.plotter
-                        .attr("transform","translate(" +(self.x(self.curTime) - 6) + "," + (self.y(self.depthArray[self.depthArray.length-1]) - 12) +")scale(0.375)");
                 }
             },
 
@@ -247,38 +240,41 @@
                 self.x = d3.scale.linear();
                 self.y = d3.scale.linear();
 
-                self.pressConvert = function(depth){
+                self.pressConvert = function(depth) {
                     return parseFloat((depth * 1000 * 9.8 * 1.45e-4)).toFixed(2);
                 }
-                
+
                 //Plotting
-                self.line = function(time,depth){
+                self.line = function(time, depth) {
                     var str = '';
-                    if (self.longtermFlag && (time.length > self.rate*100)){ //active display compression
+                    if (self.longtermFlag && (time.length > self.rate * 100)) { //active display compression
                         str += ("M " + self.x(time[0]) + " " + self.y(depth[0]) + " "); //first point
-                        var compL = Math.max(1,(time.length-2)/(self.rate*100-1)); //sampling length
-                        for (var i = 1; i < self.rate*100; i++){
-                            str += "L " + self.x(d3.mean(time.slice(compL*(i-1),compL*i))) + " "; //average time point of selection 
-                            str += self.y(d3.mean(depth.slice(compL*(i-1),compL*i))) + " "; //average depth of selection
+                        var compL = Math.max(1, (time.length - 2) / (self.rate * 100 - 1)); //sampling length
+                        for (var i = 1; i < self.rate * 100; i++) {
+                            str += "L " + self.x(d3.mean(time.slice(compL * (i - 1), compL * i))) + " "; //average time point of selection 
+                            str += self.y(d3.mean(depth.slice(compL * (i - 1), compL * i))) + " "; //average depth of selection
                         };
-                        str += ("L " + self.x(time[time.length-1]) + " " + self.y(depth[depth.length-1]) + " "); //current point
-                    }else{ //normal path output
-                        for(var i = 0; i < time.length; i++){
-                            if (i == 0){ str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " "); }
-                            else{ str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " "); };
+                        str += ("L " + self.x(time[time.length - 1]) + " " + self.y(depth[depth.length - 1]) + " "); //current point
+                    } else { //normal path output
+                        for (var i = 0; i < time.length; i++) {
+                            if (i == 0) {
+                                str += ("M " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
+                            } else {
+                                str += ("L " + self.x(time[i]) + " " + self.y(depth[i]) + " ");
+                            };
                         };
                     };
                     return str;
                 };
 
-                self.timeFormat = function(time,dec) { //curTime => dispTime
-                    var dec = (typeof dec !== 'undefined') ?  dec : 0; //default fixed pt parameter
+                self.timeFormat = function(time, dec) { //curTime => dispTime
+                    var dec = (typeof dec !== 'undefined') ? dec : 0; //default fixed pt parameter
                     var hours = Math.floor(time / 3600);
                     if ((time % 3600) < 60) {
                         return ((hours > 0) ? (hours + ":") : ("")) + "00:" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     } else if ((time % 3600) < 600) {
                         return ((hours > 0) ? (hours + ":") : ("")) + "0" + Math.floor((time % 3600) / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
-                    }else{
+                    } else {
                         return ((hours > 0) ? (hours + ":") : ("")) + Math.floor((time % 3600) / 60) + ":" + ((time % 60 < 10) ? ("0" + parseFloat(time % 60).toFixed(dec)) : parseFloat(time % 60).toFixed(dec));
                     }
                 };
@@ -297,12 +293,14 @@
                     .attr("width", "30%")
                     .attr("height", "30%");
 
-                self.yAxis = d3.svg.axis().orient("left").scale(self.y)  //y-axis
-                                .outerTickSize(0);
+                self.yAxis = d3.svg.axis().orient("left").scale(self.y) //y-axis
+                    .outerTickSize(0);
 
-                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x)  //x-axis
-                                .tickFormat(function(d){return self.timeFormat(d,0);})
-                                .outerTickSize(0);
+                self.xAxis = d3.svg.axis().orient("bottom").scale(self.x) //x-axis
+                    .tickFormat(function(d) {
+                        return self.timeFormat(d, 0);
+                    })
+                    .outerTickSize(0);
 
                 self.path = self.svg.append("g")
                     .attr("clip-path", "url(#clip)")
@@ -322,7 +320,7 @@
                         .attr("height", "20%")
                         .attr("width", "25%")
                         .attr("id", "start-rect")
-                        .attr("class","int-rect");
+                        .attr("class", "int-rect");
 
                     self.start.append("text")
                         .style("text-anchor", "middle")
@@ -353,7 +351,7 @@
                         document.body.style.cursor = "default";
                     });
 
-                    self.compr = self.svg.append("g").attr("id","long-term");
+                    self.compr = self.svg.append("g").attr("id", "long-term");
 
                     self.compr.append("rect")
                         .attr("x", "69%")
@@ -361,9 +359,11 @@
                         .attr("height", "1vmax")
                         .attr("width", "1vmax")
                         .attr("id", "compr-rect")
-                        .attr("class","int-rect");
-                        
-                    if(self.longtermFlag){self.svg.select("#compr-rect").style("fill","#FF0000")};
+                        .attr("class", "int-rect");
+
+                    if (self.longtermFlag) {
+                        self.svg.select("#compr-rect").style("fill", "#FF0000")
+                    };
 
                     self.compr.append("text")
                         .style("text-anchor", "start")
@@ -393,38 +393,46 @@
                     });
 
                     self.svg.select("#compr-rect").on("click", function() {
-                        if (!self.longtermFlag){
+                        if (!self.longtermFlag) {
                             self.compr.select("#compr-rect")
-                            .transition()
-                            .duration(100)
-                            .style("fill","#FF0000")
+                                .transition()
+                                .duration(100)
+                                .style("fill", "#FF0000")
                             self.longtermFlag = true;
-                        }else{
+                        } else {
                             self.compr.select("#compr-rect")
-                            .transition()
-                            .duration(100)
-                            .style("fill","#EFF8FB")
+                                .transition()
+                                .duration(100)
+                                .style("fill", "#EFF8FB")
                             self.longtermFlag = false;
                         };
                     });
 
-                    if(!!self.timeArray && self.timeArray.length > 0){ self.holdup = true;}
-                    else{self.holdup = false;}
+                    if (!!self.timeArray && self.timeArray.length > 0) {
+                        self.holdup = true;
+                    } else {
+                        self.holdup = false;
+                    }
 
                     self.start.on("click", function() {
 
                         var allow = true;
-                        if (self.holdup){allow = confirm("A dataset already exists. Continue?")};
+                        if (self.holdup) {
+                            allow = confirm("A dataset already exists. Continue?")
+                        };
 
-                        if (allow){
+                        if (allow) {
                             self.start.remove();
                             self.compr.remove();
-                            if(self.longtermFlag){console.log("Long-term compression: ACTIVE")}
-                            else{console.log("Long-term compression: INACTIVE")};
+                            if (self.longtermFlag) {
+                                console.log("Long-term compression: ACTIVE")
+                            } else {
+                                console.log("Long-term compression: INACTIVE")
+                            };
                             if (!!self.exp) {
                                 self.exp.remove();
                             };
-                            self.startTime = Date.now();  //initialize start characteristics
+                            self.startTime = Date.now(); //initialize start characteristics
                             self.timeArray = ["0"];
                             self.depthArray = [parseFloat(self.depth)];
                             self.points = 0;
@@ -441,7 +449,7 @@
                                 .attr("height", "20%")
                                 .attr("width", "25%")
                                 .attr("id", "start-rect")
-                                .attr("class","int-rect");
+                                .attr("class", "int-rect");
 
                             self.stop.append("text")
                                 .style("text-anchor", "middle")
@@ -475,10 +483,10 @@
                             self.stop.on("click", function() {
                                 self.stop.remove();
                                 self.drawFlag = false;
-                                self.path.attr("d", self.line(self.timeArray,self.depthArray));
+                                self.path.attr("d", self.line(self.timeArray, self.depthArray));
                                 console.log("Number of points instantiated: " + self.points);
                                 console.log("Number of redundancies found: " + self.redundancy);
-                                console.log("Percentage of original => " + parseFloat((self.points-self.redundancy)*100/self.points).toFixed(2) + "%");
+                                console.log("Percentage of original => " + parseFloat((self.points - self.redundancy) * 100 / self.points).toFixed(2) + "%");
 
                                 //Append export button
                                 self.exp = self.svg.append("g").attr("id", "export");
@@ -489,7 +497,7 @@
                                     .attr("height", "20%")
                                     .attr("width", "25%")
                                     .attr("id", "exp-rect")
-                                    .attr("class","int-rect");
+                                    .attr("class", "int-rect");
 
                                 self.exp.append("text")
                                     .style("text-anchor", "middle")
@@ -530,13 +538,13 @@
                                     function CSV() {
                                         var str = '';
 
-                                        str += 'time(s),depth,pressure\r\n';
+                                        str += 'time(s),depth(m),pressure(psi)\r\n';
 
                                         for (var i = 0; i < self.timeArray.length; i++) { //append values
                                             var line = '';
-                                            line += self.timeArray[i] + ",";  //time value in seconds
-                                            line += self.depthArray[i] + ",";  //depth value in meters
-                                            line += self.pressConvert(self.depthArray[i]) + ",";  //pressure value in psi
+                                            line += self.timeArray[i] + ","; //time value in seconds
+                                            line += self.depthArray[i] + ","; //depth value in meters
+                                            line += self.pressConvert(self.depthArray[i]) + ","; //pressure value in psi
                                             str += line + '\r\n';
                                         }
                                         return str;
@@ -569,7 +577,7 @@
                     self.width = self.elem.offsetWidth;
                     self.height = self.elem.offsetHeight;
 
-                    self.x.range([0.5*self.padding * self.width, (1 - 4 * self.padding) * self.width]);
+                    self.x.range([0.5 * self.padding * self.width, (1 - 4 * self.padding) * self.width]);
                     self.y.range([(1 - self.padding) * self.height, 2 * self.padding * self.height]);
 
                     if ((!!self.yChart) && (!!self.xChart)) {
@@ -579,18 +587,18 @@
                             .attr("class", "x axis")
                             .attr("transform", "translate(0," + (1 - self.padding) * self.height + ")")
                             .call(self.xAxis.innerTickSize((2 * self.padding * self.height) - ((1 - self.padding) * self.height)));
-                        
+
                         self.yChart = self.svg.append("g")
                             .attr("class", "y axis")
-                            .attr("transform", "translate(" + 0.5*self.padding * self.width + ",0)")
-                            .call(self.yAxis.innerTickSize((0.5*self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
+                            .attr("transform", "translate(" + 0.5 * self.padding * self.width + ",0)")
+                            .call(self.yAxis.innerTickSize((0.5 * self.padding * self.width) - ((1 - 4 * self.padding) * self.width)));
 
-                        self.plotter
-                            .attr("transform","translate(" +(self.x(self.timeArray[self.timeArray.length-1]) - 6) + "," + (self.y(self.depthArray[self.depthArray.length-1]) - 12) +")scale(0.375)");
-                    };
+                        /*self.plotter
+                            .attr("transform", "translate(" + (self.x(self.timeArray[self.timeArray.length - 1]) - 6) + "," + (self.y(self.depthArray[self.depthArray.length - 1]) - 12) + ")scale(0.375)");
+                    */};
 
-                    self.path.attr("d", self.line(self.timeArray,self.depthArray));
-                    
+                    self.path.attr("d", self.line(self.timeArray, self.depthArray));
+
                 }, true);
             }
         });
